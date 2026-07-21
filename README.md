@@ -21,6 +21,8 @@ blocking or warning before the action lands.
 
 ## Highlights
 
+- **Rules that survive the session**: enforcement runs in hooks, outside the
+  context window, immune to context drift and compaction
 - **Deterministic first**: keyword and regex rules cost nothing and never drift
 - **AI judgment when needed**: `llm-judge` rules ask a model a narrow yes/no
   question, with per-rule model choice (any `claude` or `opencode` model)

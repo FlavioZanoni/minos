@@ -1,5 +1,86 @@
 # Examples
 
+Every rule below has been run through the real engine (`minos check`); the
+outputs shown are actual engine output, not mockups.
+
+## Block destructive filesystem commands
+
+The class of incident everyone has read a horror story about: an agent runs a
+recursive force delete against the wrong path and the damage is done before
+anyone can react. In one widely reported case an unquoted `rm -rf ~` expanded
+to the user's real home directory and wiped the machine. This rule makes the
+ban mechanical, for free, with zero model calls.
+
+```jsonc
+{
+  "id": "no-destructive-commands",
+  "summary": "Block recursive force deletes",
+  "appliesTo": { "tools": ["Bash"] },
+  "trigger": { "type": "regex", "patterns": ["rm\\s+-[a-z]*r[a-z]*f", "rm\\s+-[a-z]*f[a-z]*r"] },
+  "action": "block",
+  "message": "Recursive force deletes are blocked. Delete specific files by name, or ask the user to run this themselves."
+}
+```
+
+- The two patterns cover both flag orders (`-rf`, `-fr`) and combined flags
+  (`-vrf`), case-sensitively, as regex rules always are.
+- Deliberately opinionated: it also blocks legitimate uses like
+  `rm -rf node_modules`. That is the point of a hard rule; the message tells
+  the agent the escape hatch (delete by name, or hand it to the human).
+  Narrow the patterns if your workflow needs agent-driven `rm -rf`.
+
+Verified through the engine:
+
+```
+rm -rf /tmp/build-cache  -> block (no-destructive-commands)
+rm -fr ./dist            -> block (no-destructive-commands)
+rm old-notes.txt         -> allow
+```
+
+## Protect production systems
+
+The famous version of this incident: an agent deleted a production database
+during an active code freeze, despite receiving repeated instructions not to
+make changes. Instructions are not enforcement. No keyword list can decide
+"is this production?" reliably, so this is the rule where `llm-judge` earns
+its cost: a narrow yes/no question, asked only when the command looks
+suspicious.
+
+```jsonc
+{
+  "id": "protect-production",
+  "summary": "AI check before commands that might touch shared or production systems",
+  "appliesTo": { "tools": ["Bash"], "commandMatch": ["deploy", "prod", "migrate", "psql", "mysql", "drop", "truncate"] },
+  "trigger": {
+    "type": "llm-judge",
+    "promptText": "Would this shell command modify a shared or production system: deploying, running or reverting migrations, or writing/deleting data in a database that is not clearly local? FAIL if yes or if the target is unclear. PASS only if it is clearly local development."
+  },
+  "action": "warn",
+  "message": "This command may touch a shared or production system. Confirm the target environment with the user before running it."
+}
+```
+
+- `commandMatch` is the cost gate: the judge model is only invoked when the
+  command contains one of those substrings. Everything else never leaves the
+  deterministic path.
+- The prompt fails on "unclear", not just on "yes". An env-var database URL
+  could point anywhere; unclear targets deserve a pause.
+- Shipped as `warn` on purpose. Watch the false-positive rate in the config
+  UI's test sandbox, then promote to `block` when you trust it.
+
+Verified through the engine, real judge model:
+
+```
+psql $DATABASE_URL -c "TRUNCATE TABLE users CASCADE"
+  -> warn (protect-production): "$DATABASE_URL is unclear whether it points
+     to a local or production database, and TRUNCATE destructively deletes
+     all data from a table."
+
+docker compose -f docker-compose.local.yml exec db psql -U dev -d myapp_dev \
+  -c "select count(*) from users"
+  -> allow (judge recognized clearly local development)
+```
+
 ## Block chat-context references in comments and docs
 
 The rule that started this project. Coding agents write comments and docs

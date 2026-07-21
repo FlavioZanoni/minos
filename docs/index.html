@@ -7,6 +7,7 @@
   <title>Minos: hard rules for coding agents</title>
   <meta name="description" content="Minos moves your hard rules out of the model's memory and into deterministic hooks that check every command and edit. One rule engine for Claude Code and OpenCode.">
   <link rel="canonical" href="https://minos.frav.in/">
+  <script defer src="https://analytics.frav.in/script.js" data-website-id="04358f63-3814-4eaa-bc9f-8c1528bb7277"></script>
   <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
 
   <meta property="og:type" content="website">
@@ -35,8 +36,6 @@
     "offers": { "@type": "Offer", "price": "0" }
   }
   </script>
-
-  <script defer src="https://analytics.frav.in/script.js" data-website-id="04358f63-3814-4eaa-bc9f-8c1528bb7277"></script>
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -151,6 +150,18 @@
     h2 { font-family: 'Instrument Serif', serif; font-weight: 400; font-size: 38px; margin: 0; color: var(--text-bright); }
     .section-sub { font-size: 15px; color: var(--text-soft); margin: 12px 0 0; max-width: 560px; line-height: 1.6; }
 
+    /* Incident cards */
+    .incident-kicker { color: var(--red) !important; letter-spacing: .12em; font-size: 11px; }
+    .incident-text { font-size: 14px; line-height: 1.65; color: var(--text-soft); margin: 12px 0 0; }
+    .incident-text em { color: var(--text-bright); font-style: normal; }
+    .inline-code { font-family: 'JetBrains Mono', monospace; font-size: 12.5px; color: var(--gold); }
+    .incident-close {
+      font-family: 'Instrument Serif', serif; font-weight: 400;
+      font-size: clamp(24px, 3.2vw, 34px); color: var(--text-bright);
+      text-align: center; margin: 54px 0 0;
+    }
+    .incident-close em { color: var(--gold); }
+
     /* Trigger cards */
     .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 18px; margin-top: 36px; }
     .card { border: 1px solid var(--border); border-radius: 10px; padding: 24px; background: var(--bg-card); }
@@ -240,7 +251,7 @@
         <span>claude plugin install minos@minos</span>
         <button class="copy" id="copy-install">copy</button>
       </div>
-      <span class="hero-note">one engine · two hosts: Claude Code + OpenCode</span>
+      <span class="hero-note">one engine · two hosts: Claude Code &amp; OpenCode</span>
     </div>
   </header>
 
@@ -268,13 +279,52 @@
     </div>
     <div>
       <div class="label">MINUTE 300</div>
-      <p>That instruction is 180,000 tokens behind the cursor. The agent force-pushes with total confidence.</p>
+      <p>That instruction is 180,000 tokens behind the cursor, dissolved by context drift and compaction. The agent force-pushes with total confidence.</p>
     </div>
     <div>
       <div class="label gold">EVERY MINUTE, WITH MINOS</div>
       <p class="bright">The hook runs outside the context window. Same check at minute 1 and minute 300. No drift, no dilution.</p>
     </div>
   </div>
+
+  <section id="incidents">
+    <h2>This is not hypothetical</h2>
+    <p class="section-sub">Every one of these happened to real teams, with real agents,
+      in the last year. Names withheld; the pattern is what matters.</p>
+    <div class="cards">
+      <div class="card">
+        <div class="trig incident-kicker">INCIDENT · PRODUCTION DATABASE</div>
+        <p class="incident-text">An agent deleted a production database during an active code
+          freeze, <em>despite receiving repeated instructions not to make changes</em>.
+          Then it fabricated data to cover the gap.</p>
+      </div>
+      <div class="card">
+        <div class="trig incident-kicker">INCIDENT · HOME DIRECTORY</div>
+        <p class="incident-text">An agent created a directory literally named <code class="inline-code">~</code>,
+          then "cleaned it up" with an unquoted <code class="inline-code">rm -rf ~</code>.
+          The shell expanded it to the real home directory. Machine wiped.</p>
+      </div>
+      <div class="card">
+        <div class="trig incident-kicker">INCIDENT · BACKUPS TOO</div>
+        <p class="incident-text">An agent dropped a database and its backups, stored on the
+          same volume, in nine seconds. Recovery meant nothing was left to recover.</p>
+      </div>
+    </div>
+    <div class="terminal" style="margin-top:28px" role="img" aria-label="Terminal session showing Minos blocking a recursive force delete">
+      <div class="terminal-bar">
+        <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+        <span class="title">the same command, with Minos</span>
+      </div>
+      <div class="terminal-body">
+        <div class="t-dim">⏺ Bash(<span class="t-text">rm -rf ~/projects/api</span><span class="t-dim">)</span></div>
+        <div class="t-block">
+          <span class="verdict">⊘ blocked by minos</span> <span class="t-dim">· no-destructive-commands · /rm\s+-[a-z]*r[a-z]*f/ matched "rm -rf"</span><br>
+          <span class="msg">Recursive force deletes are blocked. Delete specific files by name, or ask the user to run this themselves.</span>
+        </div>
+      </div>
+    </div>
+    <p class="incident-close serif">Instructions are not enforcement. <em>Hooks are.</em></p>
+  </section>
 
   <section id="how">
     <h2>Three kinds of judgment</h2>
