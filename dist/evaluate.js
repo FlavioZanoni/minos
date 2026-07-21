@@ -4,7 +4,7 @@ import { resolveToolingContext } from './tooling.js';
 import { runJudge } from './judge.js';
 function combineReason(message, judgeReason) {
     if (message && judgeReason)
-        return `${message} — ${judgeReason}`;
+        return `${message} (${judgeReason})`;
     return message ?? judgeReason;
 }
 async function checkFires(rule, input, merged) {
@@ -29,7 +29,8 @@ async function checkFires(rule, input, merged) {
         : path.isAbsolute(trigger.prompt)
             ? trigger.prompt
             : path.join(rule.configDir, trigger.prompt);
-    const result = await runJudge({ file: promptPath, text: trigger.promptText }, merged.judge, {
+    const judge = trigger.model ? { ...merged.judge, command: undefined, model: trigger.model } : merged.judge;
+    const result = await runJudge({ file: promptPath, text: trigger.promptText }, judge, {
         toolingContext,
         command: input.command,
         content: input.content,

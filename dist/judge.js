@@ -1,6 +1,19 @@
 import { spawn } from 'node:child_process';
 const DEFAULT_MODEL = 'claude-haiku-4-5-20251001';
 const DEFAULT_TIMEOUT_MS = 30000;
+/**
+ * Resolve the judge argv. Explicit judge.command always wins. Otherwise the
+ * model decides the CLI: provider/model ids (OpenCode style, e.g.
+ * "anthropic/claude-haiku-4-5") run via `opencode run -m`, bare ids via `claude -p`.
+ */
+export function judgeCommand(judge) {
+    if (judge.command)
+        return judge.command;
+    const model = judge.model ?? DEFAULT_MODEL;
+    return model.includes('/')
+        ? ['opencode', 'run', '-m', model]
+        : ['claude', '-p', '--model', model];
+}
 function buildPrompt(promptFileContents, payload) {
     let prompt = promptFileContents;
     if (payload.toolingContext) {
@@ -17,7 +30,9 @@ function buildPrompt(promptFileContents, payload) {
     return prompt;
 }
 function parseVerdict(output) {
-    const lines = output.split('\n');
+    // opencode run decorates output with ANSI escapes; strip before matching
+    // eslint-disable-next-line no-control-regex
+    const lines = output.replace(/\x1b\[[0-9;]*m/g, '').split('\n');
     for (const line of lines) {
         const trimmed = line.trim();
         if (/^PASS\b/i.test(trimmed)) {
@@ -52,7 +67,7 @@ export async function runJudge(promptSource, judge, payload) {
         return failOpen('llm-judge rule has neither promptText nor prompt file');
     }
     const prompt = buildPrompt(promptContents, payload);
-    const command = judge.command ?? ['claude', '-p', '--model', judge.model ?? DEFAULT_MODEL];
+    const command = judgeCommand(judge);
     const timeoutMs = judge.timeoutMs ?? DEFAULT_TIMEOUT_MS;
     const [bin, ...args] = command;
     return new Promise((resolve) => {

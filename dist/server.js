@@ -1,7 +1,7 @@
 import * as http from 'node:http';
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
-import { spawn } from 'node:child_process';
+import { spawn, execFile } from 'node:child_process';
 import { loadMergedConfig, globalConfigPath, projectConfigPath, } from './config.js';
 import { evaluateAll } from './evaluate.js';
 async function readRaw(filePath) {
@@ -11,6 +11,23 @@ async function readRaw(filePath) {
     catch {
         return null;
     }
+}
+// claude CLI has no list command; these aliases are its documented --model contract.
+const CLAUDE_ALIASES = ['haiku', 'sonnet', 'opus', 'fable'];
+let modelsCache = null;
+async function listModels() {
+    if (modelsCache && Date.now() - modelsCache.at < 10 * 60_000)
+        return modelsCache.models;
+    const opencode = await new Promise((resolve) => {
+        execFile('opencode', ['models'], { timeout: 10_000 }, (err, stdout) => {
+            if (err)
+                return resolve([]);
+            resolve(stdout.split('\n').map((l) => l.trim()).filter((l) => /^[\w.-]+\/[\w.:@-]+$/.test(l)));
+        });
+    });
+    const models = [...CLAUDE_ALIASES, ...opencode];
+    modelsCache = { at: Date.now(), models };
+    return models;
 }
 async function ownVersion() {
     try {
@@ -77,6 +94,10 @@ export async function serveConfigUI(scope, cwd) {
                 const html = await fs.readFile(uiIndexUrl, 'utf8');
                 res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
                 res.end(html);
+                return;
+            }
+            if (req.method === 'GET' && reqUrl.pathname === '/api/models') {
+                sendJson(res, 200, { models: await listModels() });
                 return;
             }
             if (req.method === 'GET' && reqUrl.pathname === '/api/state') {

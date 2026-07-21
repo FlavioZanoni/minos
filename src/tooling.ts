@@ -31,7 +31,7 @@ async function npmScriptsLines(cwd: string): Promise<string[]> {
     const pkg = JSON.parse(text);
     const scripts = pkg.scripts ?? {};
     return Object.entries(scripts).map(
-      ([name, cmd]) => `npm run ${name} — ${cmd}`,
+      ([name, cmd]) => `npm run ${name} - ${cmd}`,
     );
   } catch {
     return [];
@@ -161,7 +161,7 @@ async function buildToolingContext(cwd: string, tooling: ToolingConfig): Promise
   const lines: string[] = [];
 
   for (const d of declared) {
-    lines.push(`${d.name} — ${d.description}`);
+    lines.push(`${d.name} - ${d.description}`);
   }
 
   if (sources.includes('package.json#scripts')) {
@@ -178,7 +178,7 @@ async function buildToolingContext(cwd: string, tooling: ToolingConfig): Promise
     for (const entry of entries) {
       if (declaredByName.has(entry.name)) continue; // already listed above
       const desc = await describeBinEntry(entry, order, declaredByName);
-      if (desc) lines.push(`${entry.name} — ${desc}`);
+      if (desc) lines.push(`${entry.name} - ${desc}`);
       // omit entirely if no description resolves
     }
   }

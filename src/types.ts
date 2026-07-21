@@ -25,8 +25,9 @@ export type Trigger =
   | { type: 'contains'; patterns: string[] } // case-insensitive substring, any match
   | { type: 'regex'; patterns: string[] }    // any regex match
   // prompt = path to a prompt file, relative to the config file that defined the rule;
-  // promptText = inline prompt (takes precedence when both are set)
-  | { type: 'llm-judge'; context?: 'tooling'; prompt?: string; promptText?: string };
+  // promptText = inline prompt (takes precedence when both are set);
+  // model = per-rule judge model override (inherits the config default when absent)
+  | { type: 'llm-judge'; context?: 'tooling'; prompt?: string; promptText?: string; model?: string };
 
 export interface Rule {
   id: string;
@@ -82,7 +83,7 @@ export interface DisabledRule {
   reason?: string;
 }
 
-/** Result of loading + merging global and project config (§5). */
+/** Result of loading + merging global and project config. */
 export interface MergedConfig {
   rules: ResolvedRule[];
   disabled: DisabledRule[]; // global rules dropped by project `disable`, for UI display

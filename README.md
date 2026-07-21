@@ -5,12 +5,12 @@ forgetting your AGENTS.md / CLAUDE.md rules an hour into the session?**
 
 Rules that live in the context window get diluted as the session grows. Rules
 that live in hooks don't. rule-guard moves your hard rules out of the model's
-memory and into deterministic checks that run on **every** command and edit —
+memory and into deterministic checks that run on **every** command and edit:
 minute 1 or minute 300, same enforcement.
 
 rule-guard hooks into the agent's tool calls (edits, writes, shell commands)
-and checks them against your rules — substring match, regex match, or an
-LLM-judge call — blocking or warning before the action lands.
+and checks them against your rules (substring match, regex match, or an
+LLM-judge call), blocking or warning before the action lands.
 
 ## Install (Claude Code plugin)
 
@@ -59,7 +59,7 @@ specific global rules by id.
 `llm-judge` `prompt` paths are resolved relative to the directory of the config
 file that defines the rule (so the example above expects
 `~/.config/rule-guard/rules/prefer-existing-tooling.md` or
-`.rule-guard/rules/prefer-existing-tooling.md` — copy this repo's
+`.rule-guard/rules/prefer-existing-tooling.md`; copy this repo's
 `rules/prefer-existing-tooling.md` there to use it).
 
 ## Editing config
@@ -68,13 +68,13 @@ Two slash commands open a small local web UI for browsing, editing, and
 test-driving rules (list view, per-rule editor, and a sandbox to try a rule
 against sample input):
 
-- `/global-config` — edit `~/.config/rule-guard/rules.jsonc`
-- `/project-config` — edit the current project's `.rule-guard/rules.jsonc`
+- `/global-config`: edit `~/.config/rule-guard/rules.jsonc`
+- `/project-config`: edit the current project's `.rule-guard/rules.jsonc`
   (if the short names collide with other commands, use the namespaced form:
   `/rule-guard:global-config`, `/rule-guard:project-config`)
-- `/rule-guard:explain` — plain-language rundown of what rule-guard does and
+- `/rule-guard:explain`: plain-language rundown of what rule-guard does and
   which rules are active in the current project
-- `/rule-guard:configure <request>` — tell the agent what you want enforced in
+- `/rule-guard:configure <request>`: tell the agent what you want enforced in
   plain language (e.g. `/rule-guard:configure block force pushes here`); it
   writes the rule into the right config file and verifies it against the real
   engine before reporting back
@@ -88,3 +88,31 @@ rule-guard config --project
 
 which starts a server on `127.0.0.1` (random free port), prints its URL, and
 opens it in your browser.
+
+## Install (OpenCode plugin)
+
+No registry needed; the plugin installs straight from GitHub as a git
+dependency. Two files in your project (or the global equivalents under
+`~/.config/opencode/`):
+
+`.opencode/package.json`
+
+```json
+{ "dependencies": { "rule-guard": "github:FlavioZanoni/rule-guard" } }
+```
+
+`.opencode/plugins/rule-guard.js`
+
+```js
+export { RuleGuardPlugin } from "rule-guard/opencode";
+```
+
+The adapter maps `tool.execute.before` (bash commands, throws to block) and
+`tool.execute.after` (edit/write content checks). Same config files, same
+rules, same engine as the Claude Code plugin.
+
+For the config UI without installing anything:
+
+```
+npx github:FlavioZanoni/rule-guard config --project
+```

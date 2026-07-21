@@ -3,6 +3,13 @@
   "version": "0.1.0",
   "description": "Deterministic + on-demand rule enforcement for coding agents (Claude Code plugin, OpenCode-portable core)",
   "type": "module",
+  "main": "./dist/runner.js",
+  "types": "./dist/runner.d.ts",
+  "exports": {
+    ".": "./dist/runner.js",
+    "./opencode": "./dist/opencode.js",
+    "./package.json": "./package.json"
+  },
   "bin": { "rule-guard": "dist/cli.js" },
   "files": ["dist", "ui", "rules"],
   "scripts": {

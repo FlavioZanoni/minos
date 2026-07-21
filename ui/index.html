@@ -32,12 +32,7 @@ input:focus,textarea:focus,select:focus{outline:1px solid #4a7fb8;outline-offset
 </head>
 <body>
 <div id="app"></div>
-<datalist id="model-options">
-  <option value="claude-haiku-4-5-20251001"></option>
-  <option value="claude-sonnet-5"></option>
-  <option value="claude-opus-4-8"></option>
-  <option value="claude-fable-5"></option>
-</datalist>
+<datalist id="model-options"></datalist>
 <script>
 'use strict';
 const C = { warn:'#e0a63f', block:'#e05252', ai:'#a48af0', global:'#5aa2e8', project:'#58c99b' };
@@ -132,7 +127,11 @@ function segBtn(active,color){
 
 /* ---------- draft <-> rule mapping ---------- */
 function emptyDraft(){ return { id:'', summary:'', tools:['Bash'], paths:'', commands:'', trigType:'contains',
-  keywords:'', patterns:'', promptText:'', promptFile:'', tooling:false, action:'warn', message:'', _orig:null }; }
+  keywords:'', patterns:'', promptText:'', promptFile:'', tooling:false, judgeModel:'', action:'warn', message:'', _orig:null }; }
+function effJudgeModel(){
+  const j=S.server.merged.judge||{};
+  return j.command?'custom command':(j.model||DEFAULT_MODEL);
+}
 function draftFrom(r){
   const t=r.trigger||{};
   return { id:r.id, summary:r.summary||'', tools:[...(r.appliesTo&&r.appliesTo.tools||[])],
@@ -142,6 +141,7 @@ function draftFrom(r){
     keywords:t.type==='contains'?(t.patterns||[]).join('\n'):'',
     patterns:t.type==='regex'?(t.patterns||[]).join('\n'):'',
     promptText:t.promptText||'', promptFile:t.prompt||'', tooling:t.context==='tooling',
+    judgeModel:t.model||'',
     action:r.action||'warn', message:r.message||'', _orig:r };
 }
 function splitList(s,sep){ return s.split(sep).map(x=>x.trim()).filter(Boolean); }
@@ -156,7 +156,8 @@ function ruleFromDraft(d){
   else { trigger={type:'llm-judge'};
     if(d.tooling) trigger.context='tooling';
     if(d.promptText.trim()) trigger.promptText=d.promptText.trim();
-    if(d.promptFile.trim()) trigger.prompt=d.promptFile.trim(); }
+    if(d.promptFile.trim()) trigger.prompt=d.promptFile.trim();
+    if(d.judgeModel.trim()) trigger.model=d.judgeModel.trim(); }
   const rule={ ...(d._orig||{}), id:d.id.trim(), appliesTo, trigger, action:d.action };
   delete rule.source; delete rule.configDir; /* strip ResolvedRule fields when draft came from the merged view */
   if(d.summary.trim()) rule.summary=d.summary.trim(); else delete rule.summary;
@@ -171,6 +172,11 @@ async function loadState(){
   S.scope=S.server.scope;
   S.globalCfg=tryParse(S.server.globalRaw); S.projectCfg=tryParse(S.server.projectRaw);
   renderApp();
+  // model list comes from the CLIs (opencode models + claude aliases); async, non-blocking
+  fetch('/api/models').then(r=>r.json()).then(({models})=>{
+    document.getElementById('model-options').innerHTML=
+      (models||[]).map(m=>`<option value="${esc(m)}">${m.includes('/')?'opencode CLI':'claude CLI'}</option>`).join('');
+  }).catch(()=>{});
 }
 async function putConfig(scope,cfg){
   const r=await fetch('/api/config',{method:'PUT',headers:{'Content-Type':'application/json'},
@@ -251,7 +257,7 @@ function evalSandbox(){
       if(hit) out.push({v,kind:r.action,why:`/${hit.p}/ matched "${hit.m.slice(0,40)}"`});
     } else {
       const verdict=S.aiVerdicts&&(r.id in S.aiVerdicts)?S.aiVerdicts[r.id]:undefined;
-      if(verdict===undefined) out.push({v,kind:'ai',why:'sent to model for judgment — press "Run AI judgment"'});
+      if(verdict===undefined) out.push({v,kind:'ai',why:'sent to model for judgment - press "Run AI judgment"'});
       else if(verdict===null) out.push({v,kind:'ai-pass',why:'AI judged: passed'});
       else out.push({v,kind:r.action,why:'AI judged: '+(verdict.reason||'fired')});
     }
@@ -318,7 +324,7 @@ function renderEditor(){
     ? (selView.source==='project'||selView.source==='project-override')
     : selView.source==='global');
   const notice=(!S.isNew&&isProj()&&selView&&selView.source==='global')
-    ? 'This is a global rule. Saving changes here creates a project override in '+projectName()+' — the global copy stays untouched.'
+    ? 'This is a global rule. Saving changes here creates a project override in '+projectName()+' - the global copy stays untouched.'
     : (S.isNew?(isProj()?'New rule will be written to the '+projectName()+' project config.':'New rule will be written to your global config and apply everywhere.'):null);
   const saveLabel=S.isNew?(isProj()?'Create in '+projectName():'Create globally')
     :((isProj()&&selView&&selView.source==='global')?'Save as project override':'Save rule');
@@ -358,15 +364,18 @@ function renderEditor(){
           <span class="hint">JavaScript regex, one per line, matched case-sensitively.</span></div>`:''}
         ${d.trigType==='llm-judge'?`<div class="field">
           <textarea id="draft-prompt" rows="4" placeholder="Describe what the model should look for, phrased as a yes/no question." style="background:#0e0f12;border:1px dashed #4a4470;border-radius:6px;padding:7px 10px;color:#c9c2e8;font-size:12px;line-height:1.5;resize:vertical">${esc(d.promptText)}</textarea>
-          <span class="hint">Each candidate edit/command is sent to the model with this question. Slower and non-deterministic — prefer keyword/regex when possible.</span>
+          <span class="hint">Each candidate edit/command is sent to the model with this question. Slower and non-deterministic - prefer keyword/regex when possible.</span>
           <label style="display:flex;align-items:center;gap:7px;font-size:11px;color:#8b909c;margin-top:2px">
             <input type="checkbox" id="draft-tooling" ${d.tooling?'checked':''}> include project tooling context</label>
-          <input id="draft-promptfile" value="${esc(d.promptFile)}" spellcheck="false" placeholder="optional prompt file (relative to config dir; inline text wins)" class="inp mono" style="font-size:11px"></div>`:''}
+          <input id="draft-promptfile" value="${esc(d.promptFile)}" spellcheck="false" placeholder="optional prompt file (relative to config dir; inline text wins)" class="inp mono" style="font-size:11px">
+          <label class="flbl" style="margin-top:4px">JUDGE MODEL FOR THIS RULE</label>
+          <input id="draft-judgemodel" list="model-options" value="${esc(d.judgeModel)}" spellcheck="false" placeholder="default (${esc(effJudgeModel())})" class="inp mono" style="font-size:11px">
+          <span class="hint">Blank inherits the default judge model. provider/model ids run via the opencode CLI, bare ids via the claude CLI.</span></div>`:''}
       </div>
       <div class="field" style="gap:6px"><label class="flbl">ACTION WHEN FIRED</label>
         <div style="display:flex;gap:8px">
-          <button data-act="act-warn" style="flex:1;padding:8px 6px;border-radius:6px;font-size:11.5px;cursor:pointer;font-family:'JetBrains Mono',monospace;${d.action==='warn'?`background:${C.warn}1f;border:1px solid ${C.warn};color:${C.warn};font-weight:600`:'background:#0e0f12;border:1px solid #2a2e36;color:#6b7180'}">▲ Warn — agent may proceed</button>
-          <button data-act="act-block" style="flex:1;padding:8px 6px;border-radius:6px;font-size:11.5px;cursor:pointer;font-family:'JetBrains Mono',monospace;${d.action==='block'?`background:${C.block}22;border:1px solid ${C.block};color:${C.block};font-weight:600`:'background:#0e0f12;border:1px solid #2a2e36;color:#6b7180'}">■ Block — operation denied</button>
+          <button data-act="act-warn" style="flex:1;padding:8px 6px;border-radius:6px;font-size:11.5px;cursor:pointer;font-family:'JetBrains Mono',monospace;${d.action==='warn'?`background:${C.warn}1f;border:1px solid ${C.warn};color:${C.warn};font-weight:600`:'background:#0e0f12;border:1px solid #2a2e36;color:#6b7180'}">▲ Warn - agent may proceed</button>
+          <button data-act="act-block" style="flex:1;padding:8px 6px;border-radius:6px;font-size:11.5px;cursor:pointer;font-family:'JetBrains Mono',monospace;${d.action==='block'?`background:${C.block}22;border:1px solid ${C.block};color:${C.block};font-weight:600`:'background:#0e0f12;border:1px solid #2a2e36;color:#6b7180'}">■ Block - operation denied</button>
         </div></div>
       <div class="field"><label class="flbl">MESSAGE SHOWN TO AGENT</label>
         <textarea id="draft-message" rows="3" class="inp" style="font-size:12px;line-height:1.5;resize:vertical">${esc(d.message)}</textarea></div>
@@ -403,9 +412,9 @@ function renderSbResults(){
   const clean=!empty&&results.length===0;
   const aiBtn=nAI>0?`<button data-act="run-ai" class="ghost-btn" style="align-self:flex-start;margin-top:2px;padding:6px 10px;color:${C.ai};border-color:${C.ai}55" ${S.aiRunning?'disabled':''}>${S.aiRunning?'Running judge…':'Run AI judgment → (calls the judge model, takes seconds)'}</button>`:'';
   const summary=empty?'nothing to evaluate':`${nBlock} block · ${nWarn} warn · ${nAI} need AI judgment`;
-  return { html:`${empty?`<div style="color:#565b66;font-size:12px;padding-top:8px">No input — type or paste something on the left.</div>`:''}
+  return { html:`${empty?`<div style="color:#565b66;font-size:12px;padding-top:8px">No input - type or paste something on the left.</div>`:''}
     ${cards}${aiBtn}
-    ${clean?`<div style="display:flex;align-items:center;gap:8px;padding:10px 12px;border:1px solid #2b4033;background:rgba(80,180,120,.06);border-radius:7px;font-size:12px;color:#7fbf98;flex:none">✓ No rules fire against this input — it would run without interference.</div>`:''}`,
+    ${clean?`<div style="display:flex;align-items:center;gap:8px;padding:10px 12px;border:1px solid #2b4033;background:rgba(80,180,120,.06);border-radius:7px;font-size:12px;color:#7fbf98;flex:none">✓ No rules fire against this input - it would run without interference.</div>`:''}`,
     summary };
 }
 
@@ -452,8 +461,8 @@ function renderApp(){
       <span class="mono" style="font-size:11px;color:${acc};font-weight:600;letter-spacing:.04em;white-space:nowrap;flex:none">${isProj()?'PROJECT SCOPE':'GLOBAL SCOPE'}</span>
       <span class="mono" style="font-size:11px;color:#8b909c;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0">${esc(isProj()?sv.projectPath:sv.globalPath)}</span>
       <span style="margin-left:auto;display:flex;align-items:center;gap:7px;flex:none">
-        <span class="mono" style="font-size:10px;color:#6b7180;letter-spacing:.1em" title="Model used for AI-judgment rules, saved to this scope's config">JUDGE MODEL</span>
-        <input id="judge-model" list="model-options" value="${esc(scopeJudgeModel)}" placeholder="${esc(effModel)}" spellcheck="false" ${judgeLocked?'disabled title="judge.command is set in config — the model field is ignored"':''}
+        <span class="mono" style="font-size:10px;color:#6b7180;letter-spacing:.1em" title="Default model for AI-judgment rules, saved to this scope's config. Bare ids run via the claude CLI, provider/model ids via the opencode CLI. Each rule can override it.">DEFAULT JUDGE MODEL</span>
+        <input id="judge-model" list="model-options" value="${esc(scopeJudgeModel)}" placeholder="${esc(effModel)}" spellcheck="false" ${judgeLocked?'disabled title="judge.command is set in config - the model field is ignored"':''}
           class="inp mono" style="width:230px;padding:4px 8px;font-size:11px${judgeLocked?';opacity:.5':''}">
       </span>
     </div>
@@ -462,7 +471,7 @@ function renderApp(){
         <div style="${GRID};padding:9px 20px;border-bottom:1px solid #24272e;position:sticky;top:0;background:#0e0f12;z-index:2">
           <span class="lbl">RULE</span><span class="lbl">SUMMARY</span><span class="lbl">TRIGGER</span><span class="lbl">ACTION</span><span class="lbl">SOURCE</span>
         </div>
-        ${renderRows()||'<div style="padding:26px 20px;color:#565b66;font-size:12.5px">No rules in this scope yet — hit “+ New rule”.</div>'}
+        ${renderRows()||'<div style="padding:26px 20px;color:#565b66;font-size:12.5px">No rules in this scope yet - hit “+ New rule”.</div>'}
       </div>
       ${renderEditor()}
     </div>
@@ -503,6 +512,7 @@ function bindInputs(){
   on('draft-prompt','input',e=>S.draft.promptText=e.target.value);
   on('draft-promptfile','input',e=>S.draft.promptFile=e.target.value);
   on('draft-tooling','change',e=>S.draft.tooling=e.target.checked);
+  on('draft-judgemodel','input',e=>S.draft.judgeModel=e.target.value);
   on('draft-message','input',e=>S.draft.message=e.target.value);
   on('sb-input','input',e=>{S.sbInput=e.target.value;S.aiVerdicts=null;renderSb();});
   on('sb-path','input',e=>{S.sbPath=e.target.value;S.aiVerdicts=null;renderSb();});

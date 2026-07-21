@@ -26,6 +26,7 @@ export type Trigger = {
     context?: 'tooling';
     prompt?: string;
     promptText?: string;
+    model?: string;
 };
 export interface Rule {
     id: string;
@@ -78,7 +79,7 @@ export interface DisabledRule {
     rule: Rule;
     reason?: string;
 }
-/** Result of loading + merging global and project config (§5). */
+/** Result of loading + merging global and project config. */
 export interface MergedConfig {
     rules: ResolvedRule[];
     disabled: DisabledRule[];

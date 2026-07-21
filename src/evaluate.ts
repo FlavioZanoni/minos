@@ -5,7 +5,7 @@ import { resolveToolingContext } from './tooling.js';
 import { runJudge } from './judge.js';
 
 function combineReason(message: string | undefined, judgeReason: string | undefined): string | undefined {
-  if (message && judgeReason) return `${message} — ${judgeReason}`;
+  if (message && judgeReason) return `${message} (${judgeReason})`;
   return message ?? judgeReason;
 }
 
@@ -44,7 +44,8 @@ async function checkFires(
       ? trigger.prompt
       : path.join(rule.configDir, trigger.prompt);
 
-  const result = await runJudge({ file: promptPath, text: trigger.promptText }, merged.judge, {
+  const judge = trigger.model ? { ...merged.judge, command: undefined, model: trigger.model } : merged.judge;
+  const result = await runJudge({ file: promptPath, text: trigger.promptText }, judge, {
     toolingContext,
     command: input.command,
     content: input.content,
