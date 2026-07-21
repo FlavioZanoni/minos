@@ -1,0 +1,25 @@
+# Minos
+
+> Deterministic rule enforcement for coding agents. Minos hooks into an agent's
+> tool calls (shell commands, file edits/writes) and checks them against
+> user-defined rules before the action lands: literal keyword match, regex
+> match, or a narrow LLM-judge question. Rules hold for the whole session
+> because they run in hooks, outside the model's context window. One
+> host-neutral engine with adapters for Claude Code (plugin with PreToolUse and
+> PostToolUse hooks) and OpenCode (in-process plugin).
+
+Configuration is JSONC at two scopes: global (~/.config/minos/rules.jsonc) and
+per-project (.minos/rules.jsonc). Project rules override global rules by id,
+and a project can disable a global rule with an audit reason. Rules have an
+id, the tools they apply to, optional path globs or command substrings, a
+trigger (contains, regex, or llm-judge with a per-rule model choice), an
+action (block or warn), and a message telling the agent what to do instead.
+
+## Documentation
+
+- [README](https://github.com/FlavioZanoni/minos/blob/main/README.md): install, config schema, slash commands
+- [Examples](https://github.com/FlavioZanoni/minos/blob/main/examples.md): worked rules with field-by-field explanations
+
+## Source
+
+- [GitHub repository](https://github.com/FlavioZanoni/minos): TypeScript engine, adapters, web config UI
