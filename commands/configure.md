@@ -1,16 +1,16 @@
 ---
-description: Add or change rule-guard rules from a natural-language request
+description: Add or change minos rules from a natural-language request
 argument-hint: what to enforce, e.g. "block force pushes in this project"
 ---
 
-The user wants rule-guard configured as follows: **$ARGUMENTS**
+The user wants minos configured as follows: **$ARGUMENTS**
 
 Translate that into config changes and apply them. Everything you need is below - do not guess fields.
 
 ## Files
 
-- Global (applies everywhere): `~/.config/rule-guard/rules.jsonc`
-- Project (this repo only): `.rule-guard/rules.jsonc`
+- Global (applies everywhere): `~/.config/minos/rules.jsonc`
+- Project (this repo only): `.minos/rules.jsonc`
 
 Pick the scope the user implied ("everywhere/always" → global; otherwise default to project). Read the target file first (it may not exist - then create it). Files are JSONC: `//` comments and trailing commas are allowed; when editing, preserve existing entries and comments.
 
@@ -22,6 +22,7 @@ Pick the scope the user implied ("everywhere/always" → global; otherwise defau
     {
       "id": "kebab-case-unique-id",          // required
       "summary": "one-line description",      // optional, shown in the config UI
+      "enabled": false,                       // optional: keep the rule in config but skip it; omit = active
       "appliesTo": {
         "tools": ["Bash"],                    // which agent tools: Bash for commands, Edit/Write for file changes; omit = all
         "pathGlob": ["src/**/*.ts"],          // content rules only; ** = any depth, * = within segment; omit = all files
@@ -54,7 +55,7 @@ Merge behavior: a project rule with the same `id` as a global rule fully replace
 ## Rules for writing rules
 
 - Prefer `contains`/`regex` (deterministic, free) over `llm-judge` (slow, costs a model call). Use `llm-judge` only when literal patterns can't express the intent.
-- Ship new `llm-judge` rules as `"action": "warn"` first; tell the user to promote to `block` once the false-positive rate looks fine (the `/rule-guard:project-config` UI has a test sandbox for this).
+- Ship new `llm-judge` rules as `"action": "warn"` first; tell the user to promote to `block` once the false-positive rate looks fine (the `/minos:project-config` UI has a test sandbox for this).
 - Always write a `message` that tells the agent what to do *instead*.
 
 ## Verify before reporting

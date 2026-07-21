@@ -28,7 +28,7 @@ function hookOutputPreBash(decision: Decision): string {
     },
   };
   if (decision.decision !== "allow") {
-    out.hookSpecificOutput.permissionDecisionReason = `[rule-guard:${decision.ruleId}] ${decision.reason ?? ""}`;
+    out.hookSpecificOutput.permissionDecisionReason = `[minos:${decision.ruleId}] ${decision.reason ?? ""}`;
   }
   return JSON.stringify(out);
 }
@@ -61,7 +61,7 @@ async function cmdHookPreBash(): Promise<void> {
   }
   if (decision.decision === "warn") {
     process.stderr.write(
-      `[rule-guard:${decision.ruleId}] ${decision.reason ?? ""}\n`,
+      `[minos:${decision.ruleId}] ${decision.reason ?? ""}\n`,
     );
     process.stdout.write(hookOutputPreBash(decision) + "\n");
     process.exit(0);
@@ -96,7 +96,7 @@ async function cmdHookPostWrite(): Promise<void> {
 
   if (decision.decision === "block") {
     process.stderr.write(
-      `[rule-guard:${decision.ruleId}] ${decision.reason ?? ""}\n`,
+      `[minos:${decision.ruleId}] ${decision.reason ?? ""}\n`,
     );
     process.exit(2);
   }
@@ -104,7 +104,7 @@ async function cmdHookPostWrite(): Promise<void> {
     const out = {
       hookSpecificOutput: {
         hookEventName: "PostToolUse",
-        additionalContext: `[rule-guard:${decision.ruleId}] ${decision.reason ?? ""}`,
+        additionalContext: `[minos:${decision.ruleId}] ${decision.reason ?? ""}`,
       },
     };
     process.stdout.write(JSON.stringify(out) + "\n");
@@ -120,7 +120,7 @@ async function cmdConfig(args: string[]): Promise<void> {
       ? "project"
       : undefined;
   if (!scope) {
-    process.stderr.write("Usage: rule-guard config --global|--project\n");
+    process.stderr.write("Usage: minos config --global|--project\n");
     process.exit(1);
   }
   const { serveConfigUI } = await import("./server.js");
@@ -141,7 +141,7 @@ async function main(): Promise<void> {
       else await cmdHookPostWrite();
     } catch (err) {
       process.stderr.write(
-        `rule-guard: internal error: ${(err as Error).message}\n`,
+        `minos: internal error: ${(err as Error).message}\n`,
       );
       process.exit(0);
     }
@@ -152,7 +152,7 @@ async function main(): Promise<void> {
     return;
   }
   process.stderr.write(
-    "Usage: rule-guard check | rule-guard hook pre-bash | rule-guard hook post-write | rule-guard config --global|--project\n",
+    "Usage: minos check | minos hook pre-bash | minos hook post-write | minos config --global|--project\n",
   );
   process.exit(1);
 }

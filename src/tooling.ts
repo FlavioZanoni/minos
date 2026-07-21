@@ -191,7 +191,7 @@ export async function resolveToolingContext(
   tooling: ToolingConfig,
   sessionId?: string,
 ): Promise<string> {
-  const cacheDir = path.join(os.tmpdir(), 'rule-guard');
+  const cacheDir = path.join(os.tmpdir(), 'minos');
   const hash = crypto.createHash('sha1').update(cwd).digest('hex');
   const cacheFile = path.join(cacheDir, `${hash}-${sessionId || 'nosession'}.json`);
 

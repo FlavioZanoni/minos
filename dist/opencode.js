@@ -1,13 +1,13 @@
 // OpenCode adapter: imports the runner in-process, no subprocess.
-// Wire it up with a stub file in .opencode/plugins/ re-exporting RuleGuardPlugin.
+// Wire it up with a stub file in .opencode/plugins/ re-exporting MinosPlugin.
 import * as fs from 'node:fs/promises';
 import { loadMergedConfig } from './config.js';
 import { evaluate } from './evaluate.js';
 const TOOL_MAP = { bash: 'Bash', edit: 'Edit', write: 'Write' };
 function note(d) {
-    return `[rule-guard:${d.ruleId}] ${d.reason ?? ''}`.trim();
+    return `[minos:${d.ruleId}] ${d.reason ?? ''}`.trim();
 }
-export const RuleGuardPlugin = async (ctx) => {
+export const MinosPlugin = async (ctx) => {
     const cwd = ctx?.directory ?? process.cwd();
     // tool.execute.after doesn't receive args, so capture them here keyed by callID
     const pendingArgs = new Map();
@@ -31,7 +31,7 @@ export const RuleGuardPlugin = async (ctx) => {
             }
             catch (err) {
                 // internal errors fail open, never wedge the session
-                console.error(`rule-guard: internal error: ${err.message}`);
+                console.error(`minos: internal error: ${err.message}`);
                 return;
             }
             if (decision.decision === 'block')
@@ -56,7 +56,7 @@ export const RuleGuardPlugin = async (ctx) => {
                 decision = await evaluate({ event: 'content', tool, path: filePath, content, cwd, sessionId: input.sessionID }, merged);
             }
             catch (err) {
-                console.error(`rule-guard: internal error: ${err.message}`);
+                console.error(`minos: internal error: ${err.message}`);
                 return;
             }
             if (decision.decision === 'block') {
@@ -69,4 +69,4 @@ export const RuleGuardPlugin = async (ctx) => {
         },
     };
 };
-export default RuleGuardPlugin;
+export default MinosPlugin;

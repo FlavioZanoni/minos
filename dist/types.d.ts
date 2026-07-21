@@ -31,6 +31,7 @@ export type Trigger = {
 export interface Rule {
     id: string;
     summary?: string;
+    enabled?: boolean;
     appliesTo: {
         tools?: string[];
         pathGlob?: string[];

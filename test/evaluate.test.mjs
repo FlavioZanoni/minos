@@ -9,7 +9,7 @@ function merged(rules) {
     tooling: {},
     judge: {},
     globalPath: '/tmp/rules.jsonc',
-    projectPath: '/tmp/.rule-guard/rules.jsonc',
+    projectPath: '/tmp/.minos/rules.jsonc',
   };
 }
 

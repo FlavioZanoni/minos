@@ -18,7 +18,7 @@ function hookOutputPreBash(decision) {
         },
     };
     if (decision.decision !== "allow") {
-        out.hookSpecificOutput.permissionDecisionReason = `[rule-guard:${decision.ruleId}] ${decision.reason ?? ""}`;
+        out.hookSpecificOutput.permissionDecisionReason = `[minos:${decision.ruleId}] ${decision.reason ?? ""}`;
     }
     return JSON.stringify(out);
 }
@@ -47,7 +47,7 @@ async function cmdHookPreBash() {
         process.exit(0);
     }
     if (decision.decision === "warn") {
-        process.stderr.write(`[rule-guard:${decision.ruleId}] ${decision.reason ?? ""}\n`);
+        process.stderr.write(`[minos:${decision.ruleId}] ${decision.reason ?? ""}\n`);
         process.stdout.write(hookOutputPreBash(decision) + "\n");
         process.exit(0);
     }
@@ -79,14 +79,14 @@ async function cmdHookPostWrite() {
     const merged = await loadMergedConfig(input.cwd ?? process.cwd());
     const decision = await evaluate(input, merged);
     if (decision.decision === "block") {
-        process.stderr.write(`[rule-guard:${decision.ruleId}] ${decision.reason ?? ""}\n`);
+        process.stderr.write(`[minos:${decision.ruleId}] ${decision.reason ?? ""}\n`);
         process.exit(2);
     }
     if (decision.decision === "warn") {
         const out = {
             hookSpecificOutput: {
                 hookEventName: "PostToolUse",
-                additionalContext: `[rule-guard:${decision.ruleId}] ${decision.reason ?? ""}`,
+                additionalContext: `[minos:${decision.ruleId}] ${decision.reason ?? ""}`,
             },
         };
         process.stdout.write(JSON.stringify(out) + "\n");
@@ -101,7 +101,7 @@ async function cmdConfig(args) {
             ? "project"
             : undefined;
     if (!scope) {
-        process.stderr.write("Usage: rule-guard config --global|--project\n");
+        process.stderr.write("Usage: minos config --global|--project\n");
         process.exit(1);
     }
     const { serveConfigUI } = await import("./server.js");
@@ -122,7 +122,7 @@ async function main() {
                 await cmdHookPostWrite();
         }
         catch (err) {
-            process.stderr.write(`rule-guard: internal error: ${err.message}\n`);
+            process.stderr.write(`minos: internal error: ${err.message}\n`);
             process.exit(0);
         }
         return;
@@ -131,7 +131,7 @@ async function main() {
         await cmdConfig([sub, ...rest].filter(Boolean));
         return;
     }
-    process.stderr.write("Usage: rule-guard check | rule-guard hook pre-bash | rule-guard hook post-write | rule-guard config --global|--project\n");
+    process.stderr.write("Usage: minos check | minos hook pre-bash | minos hook post-write | minos config --global|--project\n");
     process.exit(1);
 }
 main();

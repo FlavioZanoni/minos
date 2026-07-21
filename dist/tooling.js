@@ -185,7 +185,7 @@ async function buildToolingContext(cwd, tooling) {
     return lines.join('\n');
 }
 export async function resolveToolingContext(cwd, tooling, sessionId) {
-    const cacheDir = path.join(os.tmpdir(), 'rule-guard');
+    const cacheDir = path.join(os.tmpdir(), 'minos');
     const hash = crypto.createHash('sha1').update(cwd).digest('hex');
     const cacheFile = path.join(cacheDir, `${hash}-${sessionId || 'nosession'}.json`);
     try {

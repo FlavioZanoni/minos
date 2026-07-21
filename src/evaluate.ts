@@ -58,6 +58,7 @@ async function checkFires(
 export async function evaluateAll(input: CheckInput, merged: MergedConfig): Promise<Decision[]> {
   const decisions: Decision[] = [];
   for (const rule of merged.rules) {
+    if (rule.enabled === false) continue;
     if (!matchesRule(rule, input)) continue;
     const { fires, reason } = await checkFires(rule, input, merged);
     if (fires) {

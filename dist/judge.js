@@ -46,7 +46,7 @@ function parseVerdict(output) {
     return undefined;
 }
 function failOpen(warning) {
-    process.stderr.write(`rule-guard: judge warning: ${warning}\n`);
+    process.stderr.write(`minos: judge warning: ${warning}\n`);
     return { pass: true };
 }
 export async function runJudge(promptSource, judge, payload) {

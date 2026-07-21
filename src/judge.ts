@@ -66,7 +66,7 @@ function parseVerdict(output: string): { pass: boolean; reason?: string } | unde
 }
 
 function failOpen(warning: string): { pass: boolean; reason?: string } {
-  process.stderr.write(`rule-guard: judge warning: ${warning}\n`);
+  process.stderr.write(`minos: judge warning: ${warning}\n`);
   return { pass: true };
 }
 

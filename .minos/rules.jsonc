@@ -1,0 +1,7 @@
+{
+  // Minos's own repo: docs and examples quote the trigger patterns literally,
+  // so the global chat-context rule would fire on every docs edit here.
+  "disable": [
+    { "id": "no-chat-context-in-comments", "reason": "this repo's docs quote the trigger patterns as examples" }
+  ]
+}

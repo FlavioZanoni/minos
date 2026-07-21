@@ -96,6 +96,12 @@ export async function serveConfigUI(scope, cwd) {
                 res.end(html);
                 return;
             }
+            if (req.method === 'GET' && reqUrl.pathname === '/favicon.svg') {
+                const svg = await fs.readFile(new URL('../ui/favicon.svg', import.meta.url), 'utf8');
+                res.writeHead(200, { 'Content-Type': 'image/svg+xml' });
+                res.end(svg);
+                return;
+            }
             if (req.method === 'GET' && reqUrl.pathname === '/api/models') {
                 sendJson(res, 200, { models: await listModels() });
                 return;
@@ -164,7 +170,7 @@ export async function serveConfigUI(scope, cwd) {
     const port = typeof addr === 'object' && addr !== null ? addr.port : 0;
     const url = `http://127.0.0.1:${port}/`;
     // eslint-disable-next-line no-console
-    console.log(`rule-guard config UI (${scope}): ${url}`);
+    console.log(`minos config UI (${scope}): ${url}`);
     openBrowser(url);
     // Keep the process alive until the user hits Ctrl-C; the http server
     // itself already holds the event loop open, this just makes the intent

@@ -1,4 +1,4 @@
-// Shared contract for the rule-guard runner core.
+// Shared contract for the minos runner core.
 // The runner is host-neutral: no Claude Code / OpenCode schemas in here.
 
 export type EventType = 'content' | 'command';
@@ -31,7 +31,8 @@ export type Trigger =
 
 export interface Rule {
   id: string;
-  summary?: string; // one-line description shown in the config UI
+  summary?: string;  // one-line description shown in the config UI
+  enabled?: boolean; // false = rule is kept in config but never evaluated; default true
   appliesTo: {
     tools?: string[];        // e.g. ["Edit", "Write"] or ["Bash"]
     pathGlob?: string[];     // content events: any glob must match input.path

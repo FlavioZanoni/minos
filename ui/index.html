@@ -3,7 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Rule Guard</title>
+<title>Minos</title>
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
@@ -28,6 +29,13 @@ input:focus,textarea:focus,select:focus{outline:1px solid #4a7fb8;outline-offset
 .close-x:hover{color:#d6d9e0}
 .field{display:flex;flex-direction:column;gap:5px}
 .hint{font-size:10.5px;color:#6b7180}
+.chip-box{display:flex;flex-wrap:wrap;gap:5px;align-items:center;background:#0e0f12;border:1px solid #2a2e36;border-radius:6px;padding:6px;cursor:text}
+.chip{display:inline-flex;align-items:center;gap:5px;font-family:'JetBrains Mono',monospace;font-size:11px;background:#1b1e25;border:1px solid #2f333c;border-radius:5px;padding:3px 8px;color:#c3c8d2}
+.chip .chip-x{background:none;border:none;color:#6b7180;font-size:12px;line-height:1;padding:0;cursor:pointer;width:0;opacity:0;overflow:hidden;transition:width .1s,opacity .1s}
+.chip:hover .chip-x{width:10px;opacity:1}
+.chip-x:hover{color:#e05252}
+.chip-input{background:none;border:none;color:#d6d9e0;font-family:'JetBrains Mono',monospace;font-size:11.5px;flex:1;min-width:130px;padding:3px 2px}
+.chip-input:focus{outline:none}
 </style>
 </head>
 <body>
@@ -96,8 +104,9 @@ function projectName(){ return S.server.projectName || 'project'; }
 
 /* Effective rule list for the current view: [{rule, source, disabled, disabledReason}] */
 function viewRules(){
-  if(!isProj()) return (S.globalCfg.rules||[]).map(r=>({rule:r, source:'global', disabled:false}));
-  const active = (S.server.merged.rules||[]).map(r=>({rule:r, source:r.source, disabled:false}));
+  const inactive=r=>r.enabled===false;
+  if(!isProj()) return (S.globalCfg.rules||[]).map(r=>({rule:r, source:'global', disabled:false, inactive:inactive(r)}));
+  const active = (S.server.merged.rules||[]).map(r=>({rule:r, source:r.source, disabled:false, inactive:inactive(r)}));
   const off = (S.server.merged.disabled||[]).map(d=>({rule:d.rule, source:'global', disabled:true, disabledReason:d.reason}));
   return active.concat(off);
 }
@@ -190,6 +199,8 @@ async function putConfig(scope,cfg){
 /* ---------- actions ---------- */
 async function saveDraft(){
   const d=S.draft;
+  const pending=document.getElementById('chip-input');
+  if(pending&&pending.value.trim()) d.keywords=splitList(d.keywords,'\n').concat(pending.value.trim()).join('\n');
   if(!d.id.trim()){ alert('Rule id is required.'); return; }
   const cfg=scopeCfg();
   cfg.rules=cfg.rules||[];
@@ -221,6 +232,13 @@ async function toggleDisabled(){
   }
   if(await putConfig('project',cfg)){ S.editorOpen=false; renderApp(); }
 }
+async function toggleEnabled(){
+  const cfg=scopeCfg();
+  const r=(cfg.rules||[]).find(x=>x.id===S.selectedId);
+  if(!r) return;
+  if(r.enabled===false) delete r.enabled; else r.enabled=false;
+  if(await putConfig(S.scope,cfg)){ S.editorOpen=false; renderApp(); }
+}
 async function saveJudgeModel(v){
   const cfg=scopeCfg();
   const model=v.trim();
@@ -241,7 +259,7 @@ function evalSandbox(){
   const input=sbCheckInput();
   const out=[];
   for(const v of viewRules()){
-    if(v.disabled) continue;
+    if(v.disabled||v.inactive) continue;
     const r=v.rule;
     if(!matchesRule(r,input)) continue;
     const t=r.trigger||{};
@@ -274,7 +292,7 @@ async function runAI(){
     const body=await r.json();
     S.aiVerdicts={};
     for(const v of viewRules()){
-      if(v.disabled||!v.rule.trigger||v.rule.trigger.type!=='llm-judge') continue;
+      if(v.disabled||v.inactive||!v.rule.trigger||v.rule.trigger.type!=='llm-judge') continue;
       const d=(body.decisions||[]).find(x=>x.ruleId===v.rule.id);
       S.aiVerdicts[v.rule.id]=d||null; /* null = judge passed / did not fire */
     }
@@ -288,16 +306,17 @@ function renderRows(){
   return viewRules().map(v=>{
     const r=v.rule;
     const sel=S.selectedId===r.id&&S.editorOpen;
-    const sb=sourceBadge(v);
+    let sb=sourceBadge(v);
+    if(v.inactive) sb={...sb, note:'inactive'+(sb.note?' · '+sb.note:'')};
     const tm=trigMeta(r.trigger||{});
     const act=r.action||'warn';
     const applies=(r.appliesTo&&r.appliesTo.tools||[]).join(' · ')
       +((r.appliesTo&&r.appliesTo.pathGlob||[]).length?'   '+r.appliesTo.pathGlob.join(', '):'')
       +((r.appliesTo&&r.appliesTo.commandMatch||[]).length?'   cmd: '+r.appliesTo.commandMatch.join(', '):'');
-    return `<div data-act="select-rule" data-id="${esc(r.id)}" class="row-hover" style="${GRID};align-items:start;padding:13px 20px;border-bottom:1px solid #16181d;cursor:pointer;${sel?'background:#171a20;box-shadow:inset 2px 0 0 '+acc+';':''}${v.disabled?'opacity:.4;':''}">
-      <div class="mono" style="font-size:12px;font-weight:500;color:${v.disabled?'#565b66':'#c3c8d2'};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding-top:1px">${esc(r.id)}</div>
+    return `<div data-act="select-rule" data-id="${esc(r.id)}" class="row-hover" style="${GRID};align-items:start;padding:13px 20px;border-bottom:1px solid #16181d;cursor:pointer;${sel?'background:#171a20;box-shadow:inset 2px 0 0 '+acc+';':''}${(v.disabled||v.inactive)?'opacity:.4;':''}">
+      <div class="mono" style="font-size:12px;font-weight:500;color:${(v.disabled||v.inactive)?'#565b66':'#c3c8d2'};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding-top:1px">${esc(r.id)}</div>
       <div style="min-width:0">
-        <div style="font-size:12.5px;color:${v.disabled?'#565b66':'#a8adb8'};overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(r.summary||r.message||'')}</div>
+        <div style="font-size:12.5px;color:${(v.disabled||v.inactive)?'#565b66':'#a8adb8'};overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(r.summary||r.message||'')}</div>
         <div class="mono" style="font-size:10.5px;color:#565b66;margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(applies)}</div>
       </div>
       <div style="min-width:0">
@@ -332,8 +351,11 @@ function renderEditor(){
   for(const t of d.tools) if(!tools.includes(t)) tools.push(t);
   const chip=on=>`font-family:'JetBrains Mono',monospace;font-size:11px;padding:5px 10px;border-radius:5px;cursor:pointer;${on?`background:${acc}22;border:1px solid ${acc};color:${acc}`:'background:#0e0f12;border:1px solid #2a2e36;color:#8b909c'}`;
   return `<div style="position:absolute;top:0;right:0;bottom:0;width:min(400px,92%);border-left:1px solid #24272e;background:#131519;overflow:auto;display:flex;flex-direction:column;z-index:5;box-shadow:-16px 0 40px rgba(0,0,0,.5)">
-    <div style="display:flex;align-items:center;padding:12px 16px;border-bottom:1px solid #24272e;position:sticky;top:0;background:#131519;z-index:2">
+    <div style="display:flex;align-items:center;gap:8px;padding:12px 16px;border-bottom:1px solid #24272e;position:sticky;top:0;background:#131519;z-index:2">
       <span class="mono" style="font-size:11px;letter-spacing:.1em;color:#8b909c;white-space:nowrap">${S.isNew?'NEW RULE':'EDIT RULE'}</span>
+      ${(()=>{ if(S.isNew||!selView) return '';
+        const st=selView.disabled?{label:'DISABLED HERE',c:'#6b7180'}:selView.inactive?{label:'INACTIVE',c:'#6b7180'}:{label:'ACTIVE',c:'#7fbf98'};
+        return `<span class="mono" style="white-space:nowrap;font-size:10px;font-weight:600;padding:2px 7px;border-radius:4px;background:${st.c}1f;color:${st.c};border:1px solid ${st.c}55">${st.label}</span>`; })()}
       <button data-act="close-editor" class="close-x" style="margin-left:auto">×</button>
     </div>
     ${notice?`<div style="margin:12px 16px 0;padding:8px 10px;background:${acc}14;border:1px solid ${acc}55;border-radius:6px;font-size:11.5px;color:#a8adb8;line-height:1.45">${esc(notice)}</div>`:''}
@@ -357,8 +379,11 @@ function renderEditor(){
           <button data-act="trig-ai" style="${segBtn(d.trigType==='llm-judge',C.ai)}">AI judgment</button>
         </div>
         ${d.trigType==='contains'?`<div class="field">
-          <textarea id="draft-keywords" spellcheck="false" rows="3" placeholder="one keyword per line" class="inp mono" style="font-size:11.5px;resize:vertical">${esc(d.keywords)}</textarea>
-          <span class="hint">Fires when any keyword appears literally (case-insensitive), one per line.</span></div>`:''}
+          <div class="chip-box" data-act="chip-focus">
+            ${splitList(d.keywords,'\n').map((k,i)=>`<span class="chip">${esc(k)}<button data-act="chip-del" data-idx="${i}" class="chip-x" title="remove">×</button></span>`).join('')}
+            <input id="chip-input" class="chip-input" spellcheck="false" placeholder="${splitList(d.keywords,'\n').length?'add keyword…':'type a keyword and press Enter'}">
+          </div>
+          <span class="hint">Fires when any keyword appears literally (case-insensitive). Enter adds it; hover a chip to remove it.</span></div>`:''}
         ${d.trigType==='regex'?`<div class="field">
           <textarea id="draft-patterns" spellcheck="false" rows="3" placeholder="one pattern per line" class="inp mono" style="color:#e8b4c8;font-size:11.5px;resize:vertical">${esc(d.patterns)}</textarea>
           <span class="hint">JavaScript regex, one per line, matched case-sensitively.</span></div>`:''}
@@ -382,6 +407,7 @@ function renderEditor(){
       <div style="display:flex;gap:8px;padding-top:2px">
         <button data-act="save-draft" class="save-btn" style="flex:1;background:${acc};color:#0e0f12;border:none;border-radius:6px;padding:9px 0;font-size:12.5px;font-weight:600;cursor:pointer">${esc(saveLabel)}</button>
         ${canDisable?`<button data-act="toggle-disable" class="ghost-btn">${isDisabledHere(S.selectedId)?'Re-enable here':'Disable here'}</button>`:''}
+        ${ownScope?`<button data-act="toggle-enabled" class="ghost-btn">${selView&&selView.rule.enabled===false?'Reactivate':'Deactivate'}</button>`:''}
         ${ownScope?`<button data-act="delete-rule" class="ghost-btn">Delete</button>`:''}
       </div>
     </div>
@@ -431,7 +457,7 @@ function renderApp(){
   const acc=accent();
   const sv=S.server;
   const vis=viewRules();
-  const nActive=vis.filter(v=>!v.disabled).length;
+  const nActive=vis.filter(v=>!v.disabled&&!v.inactive).length;
   const mergedJudge=sv.merged.judge||{};
   const scopeJudgeModel=(scopeCfg().judge&&scopeCfg().judge.model)||'';
   const effModel=mergedJudge.command?'(custom command in config)':(mergedJudge.model||DEFAULT_MODEL);
@@ -439,10 +465,15 @@ function renderApp(){
   document.getElementById('app').innerHTML=`
   <div style="display:flex;flex-direction:column;height:100vh;overflow:hidden">
     <div style="display:flex;align-items:center;gap:12px;height:54px;padding:0 18px;background:#15171c;border-bottom:1px solid #24272e;flex:none">
-      <div style="width:22px;height:22px;border:2px solid #d6d9e0;border-radius:4px;display:flex;align-items:center;justify-content:center;flex:none"><div style="width:8px;height:8px;background:${acc};border-radius:1px"></div></div>
-      <div style="display:flex;align-items:baseline;gap:8px">
-        <span style="font-size:14.5px;font-weight:600;letter-spacing:.01em;white-space:nowrap">Rule Guard</span>
-        <span class="mono" style="font-size:10.5px;color:#6b7180">v${esc(sv.version||'')}</span>
+      <div style="display:flex;align-items:center;gap:4px;flex:none">
+        <svg width="26" height="26" viewBox="0 0 64 64" style="flex:none">
+          <path d="M18 15 H46 V33 C46 41 40 46.5 32 50 C24 46.5 18 41 18 33 Z" fill="none" stroke="#d6d9e0" stroke-width="3.5" stroke-linejoin="round"/>
+          <rect x="26" y="22.5" width="12" height="12" rx="2.5" fill="${acc}"/>
+        </svg>
+        <div style="display:flex;align-items:baseline;gap:8px">
+          <span style="font-size:14.5px;font-weight:600;letter-spacing:.01em;white-space:nowrap">Minos</span>
+          <span class="mono" style="font-size:10.5px;color:#6b7180">v${esc(sv.version||'')}</span>
+        </div>
       </div>
       <div style="margin:0 auto;display:flex;align-items:center;gap:10px">
         <span class="mono" style="font-size:10px;color:#6b7180;letter-spacing:.12em">SCOPE</span>
@@ -507,7 +538,23 @@ function bindInputs(){
   on('draft-summary','input',e=>S.draft.summary=e.target.value);
   on('draft-paths','input',e=>S.draft.paths=e.target.value);
   on('draft-commands','input',e=>S.draft.commands=e.target.value);
-  on('draft-keywords','input',e=>S.draft.keywords=e.target.value);
+  const chip=document.getElementById('chip-input');
+  if(chip) chip.addEventListener('keydown',e=>{
+    if(e.key==='Enter'){
+      e.preventDefault();
+      const v=chip.value.trim();
+      if(!v) return;
+      S.draft.keywords=splitList(S.draft.keywords,'\n').concat(v).join('\n');
+      renderApp();
+      const again=document.getElementById('chip-input');
+      if(again) again.focus();
+    } else if(e.key==='Backspace'&&!chip.value){
+      S.draft.keywords=splitList(S.draft.keywords,'\n').slice(0,-1).join('\n');
+      renderApp();
+      const again=document.getElementById('chip-input');
+      if(again) again.focus();
+    }
+  });
   on('draft-patterns','input',e=>S.draft.patterns=e.target.value);
   on('draft-prompt','input',e=>S.draft.promptText=e.target.value);
   on('draft-promptfile','input',e=>S.draft.promptFile=e.target.value);
@@ -536,6 +583,11 @@ document.addEventListener('click',e=>{
   else if(act==='trig-ai'){ S.draft.trigType='llm-judge'; renderApp(); }
   else if(act==='act-warn'){ S.draft.action='warn'; renderApp(); }
   else if(act==='act-block'){ S.draft.action='block'; renderApp(); }
+  else if(act==='chip-del'){ const i=Number(el.dataset.idx);
+    S.draft.keywords=splitList(S.draft.keywords,'\n').filter((_,j)=>j!==i).join('\n');
+    renderApp(); const again=document.getElementById('chip-input'); if(again) again.focus(); }
+  else if(act==='chip-focus'){ if(!e.target.closest('.chip')){ const c=document.getElementById('chip-input'); if(c) c.focus(); } return; }
+  else if(act==='toggle-enabled'){ toggleEnabled(); }
   else if(act==='save-draft'){ saveDraft(); }
   else if(act==='delete-rule'){ if(confirm('Delete rule "'+S.selectedId+'" from the '+S.scope+' config?')) deleteRule(); }
   else if(act==='toggle-disable'){ toggleDisabled(); }

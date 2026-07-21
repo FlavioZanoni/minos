@@ -1,4 +1,4 @@
-export declare const RuleGuardPlugin: (ctx: {
+export declare const MinosPlugin: (ctx: {
     directory?: string;
 }) => Promise<{
     'tool.execute.before': (input: {
@@ -18,4 +18,4 @@ export declare const RuleGuardPlugin: (ctx: {
         metadata?: unknown;
     }) => Promise<void>;
 }>;
-export default RuleGuardPlugin;
+export default MinosPlugin;

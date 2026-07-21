@@ -6,15 +6,15 @@ import * as os from 'node:os';
 import { loadMergedConfig } from '../dist/config.js';
 
 function makeGlobalConfigDir() {
-  const xdg = fs.mkdtempSync(path.join(os.tmpdir(), 'rule-guard-xdg-'));
-  const dir = path.join(xdg, 'rule-guard');
+  const xdg = fs.mkdtempSync(path.join(os.tmpdir(), 'minos-xdg-'));
+  const dir = path.join(xdg, 'minos');
   fs.mkdirSync(dir, { recursive: true });
   return { xdg, dir };
 }
 
 function makeProjectDir() {
-  const cwd = fs.mkdtempSync(path.join(os.tmpdir(), 'rule-guard-proj-'));
-  const dir = path.join(cwd, '.rule-guard');
+  const cwd = fs.mkdtempSync(path.join(os.tmpdir(), 'minos-proj-'));
+  const dir = path.join(cwd, '.minos');
   fs.mkdirSync(dir, { recursive: true });
   return { cwd, dir };
 }
@@ -161,8 +161,8 @@ test('new project rules are appended with source "project"', async () => {
 });
 
 test('missing global and project config files are tolerated', async () => {
-  const xdg = fs.mkdtempSync(path.join(os.tmpdir(), 'rule-guard-xdg-empty-'));
-  const cwd = fs.mkdtempSync(path.join(os.tmpdir(), 'rule-guard-proj-empty-'));
+  const xdg = fs.mkdtempSync(path.join(os.tmpdir(), 'minos-xdg-empty-'));
+  const cwd = fs.mkdtempSync(path.join(os.tmpdir(), 'minos-proj-empty-'));
 
   await withXdg(xdg, async () => {
     const merged = await loadMergedConfig(cwd);

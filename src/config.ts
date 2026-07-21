@@ -55,11 +55,11 @@ export function parseJsonc(text: string): any {
 
 export function globalConfigPath(): string {
   const base = process.env.XDG_CONFIG_HOME || path.join(os.homedir(), '.config');
-  return path.join(base, 'rule-guard', 'rules.jsonc');
+  return path.join(base, 'minos', 'rules.jsonc');
 }
 
 export function projectConfigPath(cwd: string): string {
-  return path.join(cwd, '.rule-guard', 'rules.jsonc');
+  return path.join(cwd, '.minos', 'rules.jsonc');
 }
 
 async function loadConfigFile(filePath: string): Promise<ConfigFile> {
