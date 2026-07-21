@@ -1,0 +1,10 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      { "matcher": "Bash", "hooks": [ { "type": "command", "command": "node \"${CLAUDE_PLUGIN_ROOT}/dist/cli.js\" hook pre-bash" } ] }
+    ],
+    "PostToolUse": [
+      { "matcher": "Edit|Write", "hooks": [ { "type": "command", "command": "node \"${CLAUDE_PLUGIN_ROOT}/dist/cli.js\" hook post-write" } ] }
+    ]
+  }
+}

@@ -1,0 +1,5 @@
+node_modules/
+*.log
+
+# dist/ is intentionally NOT ignored: the plugin's hooks and slash commands
+# point at dist/cli.js, so installs straight from git need it committed.

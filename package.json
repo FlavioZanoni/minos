@@ -1,0 +1,16 @@
+{
+  "name": "rule-guard",
+  "version": "0.1.0",
+  "description": "Deterministic + on-demand rule enforcement for coding agents (Claude Code plugin, OpenCode-portable core)",
+  "type": "module",
+  "bin": { "rule-guard": "dist/cli.js" },
+  "files": ["dist", "ui", "rules"],
+  "scripts": {
+    "build": "tsc",
+    "test": "npm run build && node --test"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.0",
+    "@types/node": "^22.0.0"
+  }
+}
