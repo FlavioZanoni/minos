@@ -5,7 +5,10 @@ import * as crypto from 'node:crypto';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 const execFileP = promisify(execFile);
-const DEFAULT_SOURCES = ['package.json#scripts', 'Makefile', 'justfile', 'bin/*'];
+// `bin/*` is intentionally NOT default: describing a bin/ entry executes it
+// (`<bin> --help`), so a hostile repo could get Minos to run its binary just by
+// having a tooling-context rule evaluated. Opt in via tooling.discover.sources.
+const DEFAULT_SOURCES = ['package.json#scripts', 'Makefile', 'justfile'];
 const DEFAULT_DESCRIBE = [
     'declared',
     'tldr',
@@ -184,8 +187,14 @@ async function buildToolingContext(cwd, tooling) {
     }
     return lines.join('\n');
 }
+// User-owned cache dir (not world-writable os.tmpdir), so a co-tenant on a shared
+// host can't pre-plant/symlink a poisoned tooling-context that feeds the judge prompt.
+function cacheDirPath() {
+    const base = process.env.XDG_CACHE_HOME || path.join(os.homedir(), '.cache');
+    return path.join(base, 'minos');
+}
 export async function resolveToolingContext(cwd, tooling, sessionId) {
-    const cacheDir = path.join(os.tmpdir(), 'minos');
+    const cacheDir = cacheDirPath();
     const hash = crypto.createHash('sha1').update(cwd).digest('hex');
     const cacheFile = path.join(cacheDir, `${hash}-${sessionId || 'nosession'}.json`);
     try {
@@ -199,8 +208,8 @@ export async function resolveToolingContext(cwd, tooling, sessionId) {
     }
     const text = await buildToolingContext(cwd, tooling);
     try {
-        await fs.mkdir(cacheDir, { recursive: true });
-        await fs.writeFile(cacheFile, JSON.stringify({ text }));
+        await fs.mkdir(cacheDir, { recursive: true, mode: 0o700 });
+        await fs.writeFile(cacheFile, JSON.stringify({ text }), { mode: 0o600 });
     }
     catch {
         // ignore cache write failures

@@ -24,7 +24,16 @@ function hookOutputPreBash(decision) {
 }
 async function cmdCheck() {
     const raw = await readStdin();
-    const input = JSON.parse(raw);
+    let input;
+    try {
+        input = JSON.parse(raw);
+    }
+    catch {
+        process.stderr.write("minos: check expects a JSON CheckInput on stdin\n");
+        process.stdout.write(JSON.stringify({ error: "invalid JSON input" }) + "\n");
+        process.exit(1);
+        return;
+    }
     const merged = await loadMergedConfig(input.cwd ?? process.cwd());
     const decision = await evaluate(input, merged);
     process.stdout.write(JSON.stringify(decision) + "\n");
@@ -63,6 +72,11 @@ async function cmdHookPostWrite() {
     }
     let content;
     try {
+        // cap the read so a huge written file can't blow up the hook process
+        const st = await fs.stat(filePath);
+        if (st.size > 5 * 1024 * 1024) {
+            process.exit(0);
+        }
         content = await fs.readFile(filePath, "utf8");
     }
     catch {

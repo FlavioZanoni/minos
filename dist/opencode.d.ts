@@ -12,6 +12,7 @@ export declare const MinosPlugin: (ctx: {
         tool?: string;
         sessionID?: string;
         callID?: string;
+        args?: Record<string, unknown>;
     }, output: {
         title?: string;
         output?: unknown;

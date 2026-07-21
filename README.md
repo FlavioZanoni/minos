@@ -146,15 +146,15 @@ Slash commands:
 \* OpenCode commands are not installed automatically; copy them in first, see
 [Slash commands in OpenCode](#slash-commands-in-opencode-optional).
 
-The web UI can also be launched directly, from anywhere:
+The web UI can also be launched directly, from anywhere, with no install:
 
 ```
-minos config --global
-minos config --project
-
-# or without installing anything:
-npx github:FlavioZanoni/minos config --project
+npx -y github:FlavioZanoni/minos config --global
+npx -y github:FlavioZanoni/minos config --project
 ```
+
+(The `-y` skips npx's install prompt so it doesn't hang when an agent runs it.
+If you've cloned the repo, `node dist/cli.js config --global` works too.)
 
 It starts a server on `127.0.0.1` (random free port), prints its URL, and
 opens your browser: rule list with source tags, per-rule editor, a live test

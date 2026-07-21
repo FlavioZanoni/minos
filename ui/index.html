@@ -73,7 +73,7 @@ function globToRegex(glob){
   let core='';
   for(let i=0;i<glob.length;i++){
     const c=glob[i];
-    if(c==='*'&&glob[i+1]==='*'&&glob[i+2]==='/'){ core+='(.*/)?'; i+=2; continue; }
+    if(c==='*'&&glob[i+1]==='*'&&glob[i+2]==='/'){ core+='(?:.*/)?'; i+=2; while(glob[i+1]==='*'&&glob[i+2]==='*'&&glob[i+3]==='/')i+=3; continue; }
     if(c==='*'&&glob[i+1]==='*'){ core+='.*'; i+=1; continue; }
     if(c==='*'){ core+='[^/]*'; continue; }
     if(c==='?'){ core+='[^/]'; continue; }
@@ -290,10 +290,17 @@ async function runAI(){
     const r=await fetch('/api/test',{method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify(sbCheckInput())});
     const body=await r.json();
+    /* On a server error the body is {error}, not {decisions}; do NOT mark rules
+       as passed (that would show a false "AI PASS" for a block rule). */
+    if(!r.ok||!Array.isArray(body.decisions)){
+      S.aiRunning=false; renderSb();
+      alert('AI evaluation failed: '+(body&&body.error?body.error:('HTTP '+r.status)));
+      return;
+    }
     S.aiVerdicts={};
     for(const v of viewRules()){
       if(v.disabled||v.inactive||!v.rule.trigger||v.rule.trigger.type!=='llm-judge') continue;
-      const d=(body.decisions||[]).find(x=>x.ruleId===v.rule.id);
+      const d=body.decisions.find(x=>x.ruleId===v.rule.id);
       S.aiVerdicts[v.rule.id]=d||null; /* null = judge passed / did not fire */
     }
   }catch(e){ alert('AI evaluation failed: '+e.message); }

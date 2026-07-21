@@ -4,12 +4,23 @@ import * as fs from 'node:fs/promises';
 import { loadMergedConfig } from './config.js';
 import { evaluate } from './evaluate.js';
 const TOOL_MAP = { bash: 'Bash', edit: 'Edit', write: 'Write' };
+// Content rules run in-process on the host; cap the read so a huge generated
+// file can't OOM the OpenCode process. Bytes over this are not content-checked.
+const MAX_CONTENT_BYTES = 5 * 1024 * 1024;
+// Backstop the callID->args map so a `before` whose `after` never fires can't
+// grow it without bound over a long session.
+const MAX_PENDING = 512;
 function note(d) {
     return `[minos:${d.ruleId}] ${d.reason ?? ''}`.trim();
 }
+function argsFilePath(args) {
+    const p = args?.filePath ?? args?.file_path ?? args?.path;
+    return typeof p === 'string' ? p : undefined;
+}
 export const MinosPlugin = async (ctx) => {
     const cwd = ctx?.directory ?? process.cwd();
-    // tool.execute.after doesn't receive args, so capture them here keyed by callID
+    // Fallback capture: some hosts pass args to `after` directly (preferred when
+    // present); this map covers hosts that only provide them to `before`.
     const pendingArgs = new Map();
     return {
         'tool.execute.before': async (input, output) => {
@@ -17,8 +28,11 @@ export const MinosPlugin = async (ctx) => {
             if (!tool)
                 return;
             if (tool !== 'Bash') {
-                if (input.callID)
+                if (input.callID) {
+                    if (pendingArgs.size >= MAX_PENDING)
+                        pendingArgs.clear(); // leak backstop
                     pendingArgs.set(input.callID, output?.args ?? {});
+                }
                 return;
             }
             const command = output?.args?.command;
@@ -41,16 +55,22 @@ export const MinosPlugin = async (ctx) => {
         },
         'tool.execute.after': async (input, output) => {
             const tool = TOOL_MAP[input?.tool ?? ''];
-            const args = input?.callID ? pendingArgs.get(input.callID) : undefined;
+            const captured = input?.callID ? pendingArgs.get(input.callID) : undefined;
             if (input?.callID)
                 pendingArgs.delete(input.callID);
             if (tool !== 'Edit' && tool !== 'Write')
                 return;
-            const filePath = (args?.filePath ?? args?.file_path ?? args?.path);
+            // prefer args the host passed to `after`; fall back to the captured map
+            const filePath = argsFilePath(input?.args) ?? argsFilePath(captured);
             if (typeof filePath !== 'string')
                 return;
             let decision;
             try {
+                const st = await fs.stat(filePath);
+                if (st.size > MAX_CONTENT_BYTES) {
+                    console.error(`minos: ${filePath} exceeds ${MAX_CONTENT_BYTES} bytes; skipping content check`);
+                    return;
+                }
                 const content = await fs.readFile(filePath, 'utf8');
                 const merged = await loadMergedConfig(cwd);
                 decision = await evaluate({ event: 'content', tool, path: filePath, content, cwd, sessionId: input.sessionID }, merged);

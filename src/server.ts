@@ -96,9 +96,28 @@ function openBrowser(url: string): void {
 
 export async function serveConfigUI(scope: 'global' | 'project', cwd: string): Promise<void> {
   const uiIndexUrl = new URL('../ui/index.html', import.meta.url);
+  let boundPort = 0;
+
+  // Reject requests whose Host isn't our own loopback:port (blocks DNS rebinding)
+  // or whose Origin is cross-site (blocks a browser page hitting the local API).
+  // Without this, any page in the user's browser could rewrite rules.jsonc or set
+  // judge.command, which the engine later spawns.
+  const localOK = (req: http.IncomingMessage): boolean => {
+    if (!boundPort) return true; // pre-listen, no requests yet
+    const hosts = [`127.0.0.1:${boundPort}`, `localhost:${boundPort}`, `[::1]:${boundPort}`];
+    if (!hosts.includes(req.headers.host ?? '')) return false;
+    const origin = req.headers.origin;
+    if (origin && !hosts.some((h) => origin === `http://${h}`)) return false;
+    return true;
+  };
 
   const server = http.createServer(async (req, res) => {
     try {
+      if (!localOK(req)) {
+        res.writeHead(403, { 'Content-Type': 'text/plain' });
+        res.end('forbidden');
+        return;
+      }
       const reqUrl = new URL(req.url ?? '/', 'http://127.0.0.1');
 
       if (req.method === 'GET' && reqUrl.pathname === '/') {
@@ -184,6 +203,7 @@ export async function serveConfigUI(scope: 'global' | 'project', cwd: string): P
 
   const addr = server.address();
   const port = typeof addr === 'object' && addr !== null ? addr.port : 0;
+  boundPort = port;
   const url = `http://127.0.0.1:${port}/`;
 
   // eslint-disable-next-line no-console

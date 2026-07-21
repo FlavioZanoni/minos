@@ -1,7 +1,9 @@
 # Examples
 
-Every rule below has been run through the real engine (`minos check`); the
-outputs shown are actual engine output, not mockups.
+Every rule below has been run through the real engine; the outputs shown are
+actual engine output, not mockups. To try one yourself with no install, pipe a
+`check` payload through `npx -y github:FlavioZanoni/minos check` (shown at the
+end of the first example).
 
 ## Block destructive filesystem commands
 
@@ -204,7 +206,8 @@ Test it without committing anything, straight through the engine:
 
 ```
 echo '{"event":"command","tool":"Bash","command":"git commit -m \"fix\"","cwd":"."}' \
-  | minos check
+  | npx -y github:FlavioZanoni/minos check
 ```
 
-or paste a sample command into the test sandbox in `minos config --global`.
+or paste a sample command into the test sandbox in the config UI
+(`npx -y github:FlavioZanoni/minos config --global`).

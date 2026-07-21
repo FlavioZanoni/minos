@@ -12,6 +12,39 @@ import type {
   JudgeConfig,
 } from './types.js';
 
+/** Drop a comma that is immediately followed (past whitespace) by } or ], string-aware. */
+function stripTrailingCommas(s: string): string {
+  let out = '';
+  let inString = false;
+  let stringChar = '';
+  for (let i = 0; i < s.length; i++) {
+    const c = s[i];
+    if (inString) {
+      out += c;
+      if (c === '\\') {
+        out += s[i + 1] ?? '';
+        i++;
+      } else if (c === stringChar) {
+        inString = false;
+      }
+      continue;
+    }
+    if (c === '"' || c === "'") {
+      inString = true;
+      stringChar = c;
+      out += c;
+      continue;
+    }
+    if (c === ',') {
+      let j = i + 1;
+      while (j < s.length && /\s/.test(s[j])) j++;
+      if (s[j] === '}' || s[j] === ']') continue; // trailing comma: drop it
+    }
+    out += c;
+  }
+  return out;
+}
+
 /** Strip // and /* *\/ comments (respecting strings) + trailing commas, then JSON.parse. */
 export function parseJsonc(text: string): any {
   let out = '';
@@ -49,8 +82,8 @@ export function parseJsonc(text: string): any {
     }
     out += c;
   }
-  out = out.replace(/,(\s*[}\]])/g, '$1');
-  return JSON.parse(out);
+  // string-aware, so a comma inside a value like "x{2,}" or "a,]" is preserved
+  return JSON.parse(stripTrailingCommas(out));
 }
 
 export function globalConfigPath(): string {

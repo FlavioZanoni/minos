@@ -79,7 +79,9 @@ export async function runJudge(promptSource, judge, payload) {
             if (settled)
                 return;
             settled = true;
-            child.kill();
+            child.kill(); // SIGTERM
+            // escalate if the child ignores SIGTERM, so it can't linger as an orphan
+            setTimeout(() => child.kill('SIGKILL'), 2000).unref();
             resolve(failOpen(`judge command timed out after ${timeoutMs}ms`));
         }, timeoutMs);
         child.stdout.on('data', (d) => {
@@ -106,6 +108,12 @@ export async function runJudge(promptSource, judge, payload) {
                 return;
             }
             resolve(verdict);
+        });
+        // A judge binary that closes stdin while still alive makes this write emit
+        // EPIPE. Without a listener that is an uncaught exception that bypasses the
+        // fail-open try/catch in the adapters and crashes the whole hook process.
+        child.stdin.on('error', () => {
+            /* broken pipe etc.; the close/error/timeout handlers settle the result */
         });
         child.stdin.write(prompt);
         child.stdin.end();

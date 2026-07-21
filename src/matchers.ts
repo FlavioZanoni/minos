@@ -1,13 +1,19 @@
 import type { Rule, CheckInput } from './types.js';
 
-/** Convert a glob (supporting **, *, ?) to a RegExp for matching paths. */
+/**
+ * Convert a glob (supporting **, *, ?) to a RegExp for matching paths.
+ * Consecutive `**\/` segments are collapsed into a single non-capturing group
+ * so the result cannot backtrack catastrophically: stacked `(.*\/)?` groups on
+ * adjacent text are exponential, one `(?:.*\/)?` is linear.
+ */
 export function globToRegex(glob: string): RegExp {
   let core = '';
   for (let i = 0; i < glob.length; i++) {
     const c = glob[i];
     if (c === '*' && glob[i + 1] === '*' && glob[i + 2] === '/') {
-      core += '(.*/)?';
-      i += 2;
+      core += '(?:.*/)?';
+      i += 2; // consume the first `**/`
+      while (glob[i + 1] === '*' && glob[i + 2] === '*' && glob[i + 3] === '/') i += 3;
       continue;
     }
     if (c === '*' && glob[i + 1] === '*') {
