@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
   <title>Minos: hard rules for coding agents</title>
-  <meta name="description" content="Minos moves your hard rules out of the model's memory and into deterministic hooks that check every command and edit. One rule engine for Claude Code and OpenCode.">
+  <meta name="description" content="Minos enforces hard rules for coding agents with hooks: stop Claude adding co-author trailers, keep CLAUDE.md rules from drifting in long sessions, and block dangerous commands. One engine for Claude Code and OpenCode.">
   <link rel="canonical" href="https://minos.frav.in/">
   <script defer src="https://analytics.frav.in/script.js" data-website-id="04358f63-3814-4eaa-bc9f-8c1528bb7277"></script>
   <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
@@ -33,7 +33,41 @@
     "description": "Deterministic rule enforcement for coding agents. Blocks or warns on rule violations via hooks, for Claude Code and OpenCode.",
     "url": "https://minos.frav.in/",
     "codeRepository": "https://github.com/FlavioZanoni/minos",
-    "offers": { "@type": "Offer", "price": "0" }
+    "license": "https://www.apache.org/licenses/LICENSE-2.0",
+    "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "How do I stop Claude Code from adding itself as co-author on commits?",
+        "acceptedAnswer": { "@type": "Answer", "text": "Add a Minos rule that blocks any commit command containing a Co-Authored-By: Claude trailer. The check runs in a hook before the commit lands, so it holds even late in a long session. Minos ships this exact rule as a copy-paste example." }
+      },
+      {
+        "@type": "Question",
+        "name": "Why does an AI agent ignore my CLAUDE.md or AGENTS.md rules in long sessions?",
+        "acceptedAnswer": { "@type": "Answer", "text": "Rules written in CLAUDE.md live in the model's context window and lose attention as the session grows (context drift), and compaction summarizes them away. Minos moves hard rules into hooks that run outside the context window, so they enforce the same at minute 1 and at minute 300." }
+      },
+      {
+        "@type": "Question",
+        "name": "How do I stop a coding agent from running dangerous commands like rm -rf?",
+        "acceptedAnswer": { "@type": "Answer", "text": "Add a regex or keyword rule that blocks it. Minos checks every shell command in a PreToolUse hook and denies it before it runs, no matter how the agent phrases it. A ready-made no-destructive-commands example is included." }
+      },
+      {
+        "@type": "Question",
+        "name": "Does Minos work with both Claude Code and OpenCode?",
+        "acceptedAnswer": { "@type": "Answer", "text": "Yes. One host-neutral engine with a thin adapter for each: a Claude Code plugin that wires PreToolUse and PostToolUse hooks, and an OpenCode plugin that runs in-process. Same config files, same rules, same behavior on both." }
+      },
+      {
+        "@type": "Question",
+        "name": "Is Minos free and open source?",
+        "acceptedAnswer": { "@type": "Answer", "text": "Yes. Minos is Apache-2.0 licensed and free. It installs straight from GitHub with no registry, account, or paid tier." }
+      }
+    ]
   }
   </script>
 
@@ -214,6 +248,13 @@
     .try-row { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; margin-top: 22px; }
     .try-row .label { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--text-faint); }
 
+    /* FAQ */
+    .faq-list { margin-top: 34px; border-top: 1px solid var(--border); }
+    .faq-item { padding: 22px 0; border-bottom: 1px solid var(--border-soft); }
+    .faq-item h3 { font-family: 'Instrument Serif', serif; font-weight: 400; font-size: 20px; color: var(--text-bright); margin: 0; }
+    .faq-item p { font-size: 14.5px; line-height: 1.65; color: var(--text-soft); margin: 8px 0 0; max-width: 760px; }
+    .faq-item p code { font-family: 'JetBrains Mono', monospace; font-size: 12.5px; color: var(--gold); }
+
     /* Footer */
     footer { margin: 120px 0 0; padding: 30px 0 40px; border-top: 1px solid var(--border); display: flex; align-items: baseline; gap: 20px; flex-wrap: wrap; }
     footer .brand { font-family: 'Instrument Serif', serif; font-size: 17px; color: var(--text-dim); }
@@ -231,6 +272,7 @@
     <a class="nav-link" href="#how">how it works</a>
     <a class="nav-link" href="#config">config</a>
     <a class="nav-link" href="#install">install</a>
+    <a class="nav-link" href="#faq">faq</a>
     <a class="nav-gh" href="https://github.com/FlavioZanoni/minos">GitHub ↗</a>
   </nav>
 
@@ -419,6 +461,43 @@ export { MinosPlugin } from "minos/opencode";</pre>
         <span class="prompt">$</span>
         <span>npx -y github:FlavioZanoni/minos config --project</span>
         <button class="copy" data-copy="npx -y github:FlavioZanoni/minos config --project">copy</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="faq">
+    <h2>Questions</h2>
+    <div class="faq-list">
+      <div class="faq-item">
+        <h3>How do I stop Claude Code from adding itself as co-author on commits?</h3>
+        <p>Add a Minos rule that blocks any commit command containing a
+          <code>Co-Authored-By: Claude</code> trailer. The check runs in a hook before the
+          commit lands, so it holds even late in a long session. Minos ships this exact rule
+          as a copy-paste example.</p>
+      </div>
+      <div class="faq-item">
+        <h3>Why does an AI agent ignore my CLAUDE.md or AGENTS.md rules in long sessions?</h3>
+        <p>Rules written in CLAUDE.md live in the model's context window and lose attention as
+          the session grows (context drift), and compaction summarizes them away. Minos moves
+          hard rules into hooks that run outside the context window, so they enforce the same at
+          minute 1 and at minute 300.</p>
+      </div>
+      <div class="faq-item">
+        <h3>How do I stop a coding agent from running dangerous commands like rm -rf?</h3>
+        <p>Add a regex or keyword rule that blocks it. Minos checks every shell command in a
+          PreToolUse hook and denies it before it runs, no matter how the agent phrases it. A
+          ready-made <code>no-destructive-commands</code> example is included.</p>
+      </div>
+      <div class="faq-item">
+        <h3>Does Minos work with both Claude Code and OpenCode?</h3>
+        <p>Yes. One host-neutral engine with a thin adapter for each: a Claude Code plugin that
+          wires PreToolUse and PostToolUse hooks, and an OpenCode plugin that runs in-process.
+          Same config files, same rules, same behavior on both.</p>
+      </div>
+      <div class="faq-item">
+        <h3>Is Minos free and open source?</h3>
+        <p>Yes. Minos is Apache-2.0 licensed and free. It installs straight from GitHub with no
+          registry, account, or paid tier.</p>
       </div>
     </div>
   </section>
