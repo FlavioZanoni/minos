@@ -1,0 +1,12 @@
+{
+  "name": "rule-guard",
+  "owner": { "name": "FlavioZanoni" },
+  "plugins": [
+    {
+      "name": "rule-guard",
+      "source": "./",
+      "description": "Deterministic rule enforcement for coding agents — blocks/warns on rule violations via hooks",
+      "version": "0.1.0"
+    }
+  ]
+}

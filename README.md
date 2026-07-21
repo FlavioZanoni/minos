@@ -1,15 +1,28 @@
 # rule-guard
 
-Deterministic rule enforcement for coding agents. rule-guard hooks into an
-agent's tool calls (edits, writes, shell commands) and checks them against a
-list of rules — substring match, regex match, or an LLM-judge call — blocking
-or warning before the action completes.
+**Tired of Claude adding itself as co-author on every commit? Of the agent
+forgetting your AGENTS.md / CLAUDE.md rules an hour into the session?**
+
+Rules that live in the context window get diluted as the session grows. Rules
+that live in hooks don't. rule-guard moves your hard rules out of the model's
+memory and into deterministic checks that run on **every** command and edit —
+minute 1 or minute 300, same enforcement.
+
+rule-guard hooks into the agent's tool calls (edits, writes, shell commands)
+and checks them against your rules — substring match, regex match, or an
+LLM-judge call — blocking or warning before the action lands.
 
 ## Install (Claude Code plugin)
 
-Add this repo as a Claude Code plugin. It registers `PreToolUse` (Bash) and
-`PostToolUse` (Edit/Write) hooks that run `rule-guard` under the hood, plus
-two slash commands for editing config.
+```
+claude plugin marketplace add FlavioZanoni/rule-guard
+claude plugin install rule-guard@rule-guard
+```
+
+(or interactively: `/plugin` → browse the `rule-guard` marketplace)
+
+This registers `PreToolUse` (Bash) and `PostToolUse` (Edit/Write) hooks that
+run `rule-guard` under the hood, plus the slash commands below.
 
 ## Config files
 
