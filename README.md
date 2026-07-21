@@ -32,6 +32,11 @@ blocking or warning before the action lands.
 - **Agent-configurable**: `/minos:configure block force pushes here` writes
   and verifies the rule for you
 
+> [!NOTE]
+> Minos ships with **no rules by default**. Installing it enforces nothing
+> until you add rules: say what you want with `/minos:configure`, use the
+> web UI, or copy one of the worked rules in [examples.md](examples.md).
+
 ## Install
 
 ### Claude Code
@@ -155,3 +160,8 @@ It starts a server on `127.0.0.1` (random free port), prints its URL, and
 opens your browser: rule list with source tags, per-rule editor, a live test
 sandbox to see which rules fire on a sample command or edit, and the judge
 model picker fed by your actual installed CLIs.
+
+## License
+
+[Apache-2.0](LICENSE). Copyright 2026 Flavio Zanoni. Free to use, modify,
+and redistribute; keep the attribution and state your changes.

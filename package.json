@@ -2,6 +2,7 @@
   "name": "minos",
   "version": "0.1.0",
   "description": "Deterministic + on-demand rule enforcement for coding agents (Claude Code plugin, OpenCode-portable core)",
+  "license": "Apache-2.0",
   "type": "module",
   "main": "./dist/runner.js",
   "types": "./dist/runner.d.ts",
