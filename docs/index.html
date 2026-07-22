@@ -427,6 +427,33 @@
     </div>
   </section>
 
+  <section id="reviews">
+    <h2>It reviews so you don't have to</h2>
+    <p class="section-sub">Minos doesn't just block. A warn or block hands the agent a message it
+      can act on, so the correction you'd have made in review happens on its own, before the diff
+      ever reaches you.</p>
+    <div class="cards">
+      <div class="card">
+        <h3>Corrects in place</h3>
+        <p>Wrong commit trailer, a stray <code class="inline-code">console.log</code>, an edit to a
+          frozen migration: the agent reads the message, fixes it, and moves on. You review the
+          result, not the mistake.</p>
+      </div>
+      <div class="card">
+        <h3>The fix tends to stick</h3>
+        <p>A fresh correction stays in the agent's context, so it keeps doing the right thing for a
+          good while. And when the reminder fades, Minos just catches it again. Either way you
+          never say it twice.</p>
+      </div>
+      <div class="card">
+        <h3>Pins the tool it forgets</h3>
+        <p>Told it to use your <code class="inline-code">deploy</code> script instead of raw kubectl
+          and it drifted back? A rule makes the switch stick, warning or blocking until the agent
+          reaches for the right one.</p>
+      </div>
+    </div>
+  </section>
+
   <section id="config" class="config-grid">
     <div>
       <h2>One config, two scopes</h2>
@@ -447,6 +474,8 @@
       <p class="config-alt">Or skip the file entirely: <code>/minos:configure block force pushes here</code>
         writes and verifies the rule for you, and <code>minos config</code> opens a local web UI
         with a rule editor, live test sandbox, and judge model picker.</p>
+      <p class="config-alt"><a href="https://github.com/FlavioZanoni/minos/blob/main/examples.md">Browse worked example rules &rarr;</a>
+        every one is engine-verified with its real output.</p>
     </div>
     <div class="code-panel">
       <div class="filename">.minos/rules.jsonc</div>

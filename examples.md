@@ -83,6 +83,40 @@ docker compose -f docker-compose.local.yml exec db psql -U dev -d myapp_dev \
   -> allow (judge recognized clearly local development)
 ```
 
+## Steer the agent to your wrapper tool
+
+Every project has a tool it wants the agent to use, and the agent keeps
+forgetting: use `./deploy`, not raw `kubectl`; use the `db` script, not `psql`
+by hand. You put it in CLAUDE.md, it holds for a while, then the agent drifts
+back. This rule makes the nudge automatic, and because the agent gets the
+message and corrects in place, you stop repeating yourself.
+
+```jsonc
+{
+  "id": "prefer-deploy-wrapper",
+  "summary": "Use the project's deploy script, not raw kubectl",
+  "appliesTo": { "tools": ["Bash"], "commandMatch": ["kubectl"] },
+  "trigger": { "type": "contains", "patterns": ["kubectl"] },
+  "action": "warn",
+  "message": "Use ./deploy (it sets the namespace and context) instead of calling kubectl directly."
+}
+```
+
+- Shipped as `warn`: the agent sees the message and self-corrects, but isn't
+  hard-blocked. Promote to `block` once you want it enforced strictly.
+- `commandMatch` limits the rule to commands mentioning `kubectl`, so nothing
+  else pays any cost.
+- The message names the *why* (`sets the namespace and context`), which is what
+  makes the agent actually switch instead of arguing.
+
+Verified through the engine:
+
+```
+kubectl apply -f deploy.yaml  -> warn (prefer-deploy-wrapper)
+./deploy staging              -> allow
+git status                    -> allow
+```
+
 ## Block chat-context references in comments and docs
 
 The rule that started this project. Coding agents write comments and docs
