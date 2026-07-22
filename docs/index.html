@@ -156,6 +156,7 @@
     .terminal-body { padding: 20px 22px; font-family: 'JetBrains Mono', monospace; font-size: 13px; line-height: 1.85; }
     .t-dim { color: var(--text-dim); }
     .t-text { color: var(--text); }
+    .t-cont { padding-left: 60px; }
     .t-block {
       margin-top: 10px; padding: 10px 14px;
       border-left: 2px solid var(--red); background: rgba(207, 93, 67, .06);
@@ -261,6 +262,42 @@
     footer .tag { font-family: 'JetBrains Mono', monospace; font-size: 11.5px; color: var(--text-faint); }
     footer .spacer { flex: 1; }
     footer a { font-family: 'JetBrains Mono', monospace; font-size: 12px; }
+
+    /* Long code chips must never force the page to scroll sideways */
+    .install-chip { max-width: 100%; flex-wrap: wrap; }
+    .install-chip span { overflow-wrap: anywhere; }
+
+    @media (max-width: 680px) {
+      .wrap { padding: 0 18px; }
+      nav { gap: 12px; padding: 20px 0; }
+      .nav-link { display: none; }                 /* keep brand + GitHub on phones */
+      header { padding: 44px 0 12px; }
+      .lede { font-size: 15.5px; }
+      .hero-note { font-size: 11px; }
+
+      .terminal { margin: 34px 0 0; }
+      .terminal-body { font-size: 11px; line-height: 1.75; padding: 16px 14px; overflow-x: auto; }
+      .terminal-body > div { overflow-wrap: anywhere; }
+      .t-cont { padding-left: 22px; }
+
+      section { margin: 60px 0 0; }
+      h2 { font-size: 30px; }
+      .section-sub { font-size: 14px; }
+
+      /* problem strip: stacked, so dividers go on top instead of the side */
+      .strip { margin: 52px 0 0; }
+      .strip > div, .strip > div:first-child { padding: 22px 0 0; border-left: none; border-top: 1px solid var(--border-soft); }
+      .strip > div:first-child { border-top: none; padding-top: 26px; }
+
+      .cards { gap: 14px; margin-top: 26px; }
+      .config-grid { gap: 30px; }
+      .install-cards { gap: 14px; }
+      .incident-close { font-size: 22px; margin-top: 40px; }
+      .faq-item h3 { font-size: 18px; }
+
+      footer { margin: 68px 0 0; flex-direction: column; align-items: flex-start; gap: 8px; }
+      footer .spacer { display: none; }
+    }
   </style>
 </head>
 <body>
@@ -300,7 +337,7 @@
     </div>
     <div class="terminal-body">
       <div class="t-dim">⏺ Bash(<span class="t-text">git commit -m "fix: retry logic</span></div>
-      <div class="t-text" style="padding-left:60px">Co-Authored-By: Claude &lt;noreply@anthropic.com&gt;"<span class="t-dim">)</span></div>
+      <div class="t-text t-cont">Co-Authored-By: Claude &lt;noreply@anthropic.com&gt;"<span class="t-dim">)</span></div>
       <div class="t-block">
         <span class="verdict">⊘ blocked by minos</span> <span class="t-dim">· no-claude-coauthor · contains "Co-Authored-By: Claude"</span><br>
         <span class="msg">Strip the Co-Authored-By/Generated-with trailer before committing.</span>
